@@ -100,3 +100,79 @@ View `.qzv` files online at: https://view.qiime2.org/
 ## License
 
 [MIT](LICENSE)
+
+---
+
+## 中文说明
+
+### 项目简介
+
+基于 QIIME2 的 16S rRNA 扩增子分析流程，适用于双端测序数据。
+
+### 分析流程
+
+1. **质控与引物切除** — FastQC 质量检查 + cutadapt 引物去除
+2. **去噪** — DADA2 去噪（纠错、ASV 推断、嵌合体去除）
+3. **物种注释** — 基于 SILVA-138 分类器的物种注释
+4. **系统发育树** — MAFFT 比对 + FastTree 建树
+5. **多样性分析** — Alpha 稀疏曲线、核心多样性指标（Faith PD、Shannon、UniFrac）、PCoA
+6. **结果导出** — 将 QIIME2 产物导出为文本/TSV/FASTA 格式，供 R/Python 下游分析
+
+### 环境要求
+
+- Miniconda（或 Anaconda）
+- 两个 conda 环境（详见安装脚本）：
+  - `qc_preprocess`：FastQC、cutadapt、MultiQC
+  - `qiime2-2023.2`：QIIME2 amplicon 发行版
+- SILVA-138 分类器（`silva-138-99-nb-classifier.qza`）
+
+### 快速开始
+
+#### 1. 环境安装
+
+```bash
+bash qiime2-16s-pipeline_install.sh
+```
+
+#### 2. 数据准备
+
+将双端 FASTQ 文件放入 `seq/` 目录，命名格式：
+```
+seq/<样本名>_1.fq.gz
+seq/<样本名>_2.fq.gz
+```
+
+将元数据文件 `metadata.txt` 放在工作目录下（TSV 格式，第一列为样本 ID，必须包含 Group 分组列）。
+
+#### 3. 运行流程
+
+编辑 `qiime2-16s-pipeline.sh` 中的工作目录和参数，然后按步骤逐条执行：
+
+```bash
+# 第0步：修改脚本中的参数（wd、metadata 路径等）
+# 第1-2步：目录初始化与环境验证
+# 第3-5步：质控与引物切除
+# 第6-7步：导入 QIIME2
+# 第8步：DADA2 去噪
+# 第9步：物种注释
+# 第10步：系统发育树
+# 第11-13步：多样性分析
+# 第14步：结果导出
+```
+
+**注意**：本流程设计为**手动分步执行**，每完成一步请检查输出质量，确认无误后再继续下一步。
+
+### 示例数据
+
+数据集：拟南芥根际微生物组（16S rRNA，V3-V4 区）
+- 18 个样本（WT/KO/OE 三组，每组 6 个重复）
+- 测序平台：Illumina HiSeq 2500，PE250
+- 数据编号：CRA002352
+
+`.qzv` 可视化文件可在 https://view.qiime2.org/ 在线查看。
+
+### 注意事项
+
+- DADA2 参数（`--p-trunc-len-f`、`--p-trunc-len-r`、`--p-max-ee`）需根据实际测序数据质量调整
+- `--p-sampling-depth`（抽平深度）需根据 alpha 稀疏曲线和 table.qzv 确定
+- 嵌合体去除采用 `pooled` 策略（大规模数据比 `consensus` 更稳定）
