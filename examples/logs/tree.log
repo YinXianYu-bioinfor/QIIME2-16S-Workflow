@@ -1,0 +1,5 @@
+nohup: ignoring input
+Saved FeatureData[AlignedSequence] to: qiime2/aligned-rep-seqs.qza
+Saved FeatureData[AlignedSequence] to: qiime2/masked-aligned-rep-seqs.qza
+Saved Phylogeny[Unrooted] to: qiime2/unrooted-tree.qza
+Saved Phylogeny[Rooted] to: qiime2/rooted-tree.qza

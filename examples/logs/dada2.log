@@ -1,0 +1,4 @@
+nohup: ignoring input
+Saved FeatureTable[Frequency] to: qiime2/table.qza
+Saved FeatureData[Sequence] to: qiime2/rep-seqs.qza
+Saved SampleData[DADA2Stats] to: qiime2/denoising-stats.qza

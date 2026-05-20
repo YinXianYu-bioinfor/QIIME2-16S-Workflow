@@ -1,0 +1,24 @@
+# QIIME2 binary artifacts (excluding .qzv visualizations)
+*.qza
+
+# Raw & intermediate sequencing data
+*.fq
+*.fq.gz
+seq/
+trimmed/
+
+# FastQC & MultiQC intermediate reports
+fastqc_*/
+multiqc_report*.*
+multiqc_report*_data/
+
+# Cutadapt logs (per-sample)
+cutadapt_logs/
+results/cutadapt_logs/
+
+# Core metrics intermediate files
+results/core-metrics-results/
+
+# Common pipeline output
+nohup.out
+temp/
