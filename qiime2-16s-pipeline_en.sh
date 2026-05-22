@@ -14,6 +14,7 @@ wd=~/amplicon_analysis
 metadata=metadata.txt
 # classifiers/SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza must be pre-downloaded to classifiers/
 # Download: https://pan.baidu.com/s/1yFOvSJXofc6H7AahHSJq2A?pwd=5gdz
+#      Or obtain from the SILVA website: https://www.arb-silva.de/
 # Note: SILVA138.2 classifier is only compatible with qiime2 ≥ 2023.x (this pipeline uses qiime2-2025.7)
 #       If using qiime2-2023.2, please use silva-138-99-nb-classifier.qza instead
 
@@ -21,7 +22,11 @@ metadata=metadata.txt
 # Before running this script, place the following files in the specified locations:
 #   - Raw sequencing data: *.fq.gz into seq/ directory (naming: sampleName_1.fq.gz / sampleName_2.fq.gz)
 #   - Metadata file: metadata.txt in the working directory
-#     Format: TSV, first row is header, first column is sample ID, must include Group column
+#     Format: TSV (tab-separated), first row is header, first column is sample ID, must include Group column
+#     Example (see: examples/metadata.txt):
+#       SampleID  Group  ...
+#       WT1       WT     ...
+#       KO1       KO     ...
 mkdir -p ${wd}/{seq,trimmed,qiime2,logs,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
 cd ${wd}
 
@@ -247,7 +252,7 @@ qiime tools export --input-path qiime2/table.qza \
 biom convert -i results/export/feature-table.biom \
     -o results/export/feature-table.tsv --to-tsv
 # View total sequence count (total_frequency)
-biom summarize-table -i results/export/feature-table.tsv
+biom summarize-table -i results/export/feature-table.biom
 # Output: results/export/feature-table.tsv (rows = ASVs, columns = samples, values = sequence counts)
 
 # 14c. Taxonomic classification

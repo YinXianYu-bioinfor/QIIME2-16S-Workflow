@@ -70,20 +70,31 @@ QIIME2-16S-Workflow/
 ├── qiime2-16s-pipeline_en.sh       # Main analysis pipeline (English)
 ├── qiime2-16s-pipeline_install.sh  # Environment installation (中文版)
 ├── qiime2-16s-pipeline_install_en.sh # Environment installation (English)
-├── examples/                       # Example analysis results
-│   ├── metadata.txt                # Sample metadata reference
-│   ├── manifest                    # Sample manifest reference
-│   ├── export/                     # Final exported results (TSV/FASTA)
-│   │   ├── feature-table.tsv       # ASV abundance table
-│   │   ├── taxonomy.tsv            # Species annotation
-│   │   ├── dna-sequences.fasta     # Representative sequences
-│   │   ├── alpha-diversity.tsv     # Alpha diversity metrics
-│   │   ├── distance-matrix.tsv     # Beta diversity distances
-│   │   ├── ordination.txt          # PCoA coordinates
-│   │   ├── stats.tsv               # Denoising statistics
-│   │   └── tree.nwk                # Phylogenetic tree (Newick)
-│   ├── qiime2/                     # QIIME2 visualizations (.qzv)
-│   └── logs/                       # Pipeline run logs
+├── examples/                        # Example analysis results
+│   ├── metadata.txt                 # Sample metadata reference
+│   ├── manifest                     # Sample manifest reference
+│   ├── export/                      # Final exported results
+│   │   ├── feature-table.tsv        # Raw ASV abundance table
+│   │   ├── feature-table.biom       # Raw ASV abundance table (BIOM)
+│   │   ├── rarefied_table.tsv       # Rarefied ASV abundance table
+│   │   ├── rarefied_table.biom      # Rarefied ASV abundance table (BIOM)
+│   │   ├── taxonomy.tsv             # Species annotation
+│   │   ├── dna-sequences.fasta      # Representative sequences
+│   │   ├── alpha-diversity.tsv      # Alpha diversity metrics
+│   │   ├── distance-matrix.tsv      # Beta diversity distances
+│   │   ├── ordination.txt           # PCoA coordinates
+│   │   ├── stats.tsv                # Denoising statistics
+│   │   └── tree.nwk                 # Phylogenetic tree (Newick)
+│   ├── qiime2/                      # QIIME2 visualizations (.qzv)
+│   │   ├── demux.qzv               # Demultiplexing summary
+│   │   ├── denoising-stats.qzv     # DADA2 denoising statistics
+│   │   ├── table.qzv               # Feature table summary
+│   │   └── taxonomy.qzv            # Taxonomy classification
+│   └── logs/                        # Pipeline run logs
+│       ├── dada2.log               # DADA2 denoising log
+│       ├── classify.log            # Taxonomy classification log
+│       └── tree.log                # Phylogenetic tree log
+├── LICENSE
 ├── .gitignore
 └── README.md
 ```

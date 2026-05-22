@@ -14,6 +14,7 @@ wd=~/amplicon_analysis
 metadata=metadata.txt
 # classifiers/SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza 需预先下载至 classifiers/ 目录
 # 下载: https://pan.baidu.com/s/1yFOvSJXofc6H7AahHSJq2A?pwd=5gdz
+#     或从 SILVA 官网获取: https://www.arb-silva.de/
 # 注: SILVA138.2 分类器仅兼容 qiime2 ≥ 2023 版本 (本流程以 qiime2-2025.7 为例)
 #     若使用 qiime2-2023.2, 请改用 silva-138-99-nb-classifier.qza
 
@@ -21,7 +22,11 @@ metadata=metadata.txt
 # 运行本脚本前, 请将以下文件放到指定位置:
 #   - 原始测序数据: *.fq.gz 放入 seq/ 目录 (命名格式: 样本名_1.fq.gz / 样本名_2.fq.gz)
 #   - 元数据文件: metadata.txt 放在工作目录下
-#     格式: TSV, 第一行为表头, 第一列为样本ID, 必须含 Group 分组列
+#     格式: TSV (制表符分隔), 第一行为表头, 第一列为样本ID, 必须含 Group 分组列
+#     示例 (参考: examples/metadata.txt):
+#       SampleID  Group  ...
+#       WT1       WT     ...
+#       KO1       KO     ...
 mkdir -p ${wd}/{seq,trimmed,qiime2,logs,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
 cd ${wd}
 
@@ -247,7 +252,7 @@ qiime tools export --input-path qiime2/table.qza \
 biom convert -i results/export/feature-table.biom \
     -o results/export/feature-table.tsv --to-tsv
 # 查看总序列数（total_frequency）
-biom summarize-table -i results/export/feature-table.tsv
+biom summarize-table -i results/export/feature-table.biom
 # 输出: results/export/feature-table.tsv (行为 ASV, 列为样本, 值为序列计数)
 
 # 14c. 物种注释

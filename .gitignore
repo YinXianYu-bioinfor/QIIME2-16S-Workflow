@@ -33,3 +33,7 @@ results/export/
 # Common pipeline output
 nohup.out
 temp/
+
+# But track example files explicitly (override above patterns)
+!/examples/manifest
+!/examples/logs/

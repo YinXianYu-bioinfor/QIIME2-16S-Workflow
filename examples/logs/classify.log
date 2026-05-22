@@ -1,2 +1,4 @@
 nohup: ignoring input
+/home/bioinfor2023/yinxianyu/miniconda3/envs/qiime2-2025.7/lib/python3.10/site-packages/q2_demux/_summarize/_visualizer.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
 Saved FeatureData[Taxonomy] to: qiime2/taxonomy.qza
