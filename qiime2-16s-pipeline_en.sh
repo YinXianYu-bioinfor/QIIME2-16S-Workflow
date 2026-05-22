@@ -129,17 +129,17 @@ nohup qiime dada2 denoise-paired \
     --i-demultiplexed-seqs qiime2/demux.qza \
     --p-trim-left-f 0 --p-trim-left-r 0 \
     --p-trunc-len-f 230 --p-trunc-len-r 217 \
-    --p-max-ee-f 1.5 --p-max-ee-r 2.0 \
-    --p-trunc-q 2 \
+    --p-max-ee-f 5.0 --p-max-ee-r 5.0 \
+    --p-trunc-q 10 \
     --p-n-threads 8 \
-    --p-chimera-method pooled \
+    --p-chimera-method consensus \
     --o-table qiime2/table.qza \
     --o-representative-sequences qiime2/rep-seqs.qza \
     --o-denoising-stats qiime2/denoising-stats.qza \
     > logs/dada2.log 2>&1 &
 echo "DADA2 running in background, check progress: tail -f logs/dada2.log"
 echo "Continue with downstream commands after completion"
-# Note: consensus strategy may stall on large datasets, pooled is more stable
+# Note: 'pooled' was removed in QIIME2 2025.4; 2025.7 supports 'consensus' and 'none' only
 
 qiime metadata tabulate \
     --m-input-file qiime2/denoising-stats.qza \

@@ -101,7 +101,7 @@ View `.qzv` files online at: https://view.qiime2.org/
 
 - DADA2 parameters (`--p-trunc-len-f`, `--p-trunc-len-r`, `--p-max-ee`) should be adjusted based on your sequencing data quality
 - `--p-sampling-depth` for core diversity metrics should be determined from alpha rarefaction curve and table.qzv
-- The chimera removal uses `pooled` method (more stable than `consensus` for large datasets)
+- DADA2 chimera method: qiime2-2025.7 supports `consensus` and `none` only (`pooled` was removed in QIIME2 2025.4)
 
 ## License
 
@@ -185,4 +185,4 @@ seq/<样本名>_2.fq.gz
 
 - DADA2 参数（`--p-trunc-len-f`、`--p-trunc-len-r`、`--p-max-ee`）需根据实际测序数据质量调整
 - `--p-sampling-depth`（抽平深度）需根据 alpha 稀疏曲线和 table.qzv 确定
-- 嵌合体去除采用 `pooled` 策略（大规模数据比 `consensus` 更稳定）
+- DADA2 嵌合体方法：qiime2-2025.7 仅支持 `consensus` 和 `none`（`pooled` 已在 QIIME2 2025.4 移除）
