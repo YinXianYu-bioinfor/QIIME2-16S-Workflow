@@ -73,18 +73,28 @@ QIIME2-16S-Workflow/
 ├── examples/                        # Example analysis results
 │   ├── metadata.txt                 # Sample metadata reference
 │   ├── manifest                     # Sample manifest reference
-│   ├── export/                      # Final exported results
-│   │   ├── feature-table.tsv        # Raw ASV abundance table
-│   │   ├── feature-table.biom       # Raw ASV abundance table (BIOM)
-│   │   ├── rarefied_table.tsv       # Rarefied ASV abundance table
-│   │   ├── rarefied_table.biom      # Rarefied ASV abundance table (BIOM)
-│   │   ├── taxonomy.tsv             # Species annotation
-│   │   ├── dna-sequences.fasta      # Representative sequences
-│   │   ├── alpha-diversity.tsv      # Alpha diversity metrics
-│   │   ├── distance-matrix.tsv      # Beta diversity distances
-│   │   ├── ordination.txt           # PCoA coordinates
-│   │   ├── stats.tsv                # Denoising statistics
-│   │   └── tree.nwk                 # Phylogenetic tree (Newick)
+│   ├── export/                      # Final exported results + R visualization
+│   │   ├── QIIME2_16S_visualization.R     # R visualization script (中文版)
+│   │   ├── QIIME2_16S_visualization_EN.R  # R visualization script (English)
+│   │   ├── data/                           # QIIME2 exported data files
+│   │   │   ├── feature-table.tsv           # Raw ASV abundance table
+│   │   │   ├── feature-table.biom          # Raw ASV abundance table (BIOM)
+│   │   │   ├── rarefied_table.tsv          # Rarefied ASV abundance table
+│   │   │   ├── rarefied_table.biom         # Rarefied ASV abundance table (BIOM)
+│   │   │   ├── taxonomy.tsv                # Species annotation
+│   │   │   ├── dna-sequences.fasta         # Representative sequences
+│   │   │   ├── alpha-diversity.tsv         # Alpha diversity metrics
+│   │   │   ├── distance-matrix.tsv         # Beta diversity distances
+│   │   │   ├── ordination.txt              # PCoA coordinates
+│   │   │   ├── stats.tsv                   # Denoising statistics
+│   │   │   └── tree.nwk                    # Phylogenetic tree (Newick)
+│   │   ├── alpha/                   # Alpha diversity boxplots
+│   │   ├── beta/                    # Beta diversity PCoA plots
+│   │   ├── taxa/                    # Phylum composition plots
+│   │   ├── heatmap/                 # Genus-level heatmap
+│   │   ├── faprotax/                # FAPROTAX input tables
+│   │   ├── picrust2/                # PICRUSt2 input files
+│   │   └── feature_tables/          # Processed taxonomy & abundance tables
 │   ├── qiime2/                      # QIIME2 visualizations (.qzv)
 │   │   ├── demux.qzv               # Demultiplexing summary
 │   │   ├── denoising-stats.qzv     # DADA2 denoising statistics
@@ -107,6 +117,46 @@ Dataset: *Arabidopsis thaliana* rhizosphere microbiome (16S rRNA, V3-V4 region)
 - Published under CRA002352
 
 View `.qzv` files online at: https://view.qiime2.org/
+
+## R Visualization
+
+After the pipeline completes Step 14 (Export), you can use the R scripts for publication-ready visualizations.
+
+### Workflow
+
+```bash
+# 1. Download exported files from the server
+#    (results/export/ from the pipeline working directory)
+#    Save them to a local directory (e.g., data/)
+
+# 2. Place the R script at the same level as data/
+#    export/
+#    ├── QIIME2_16S_visualization.R
+#    ├── data/
+#    │   ├── feature-table.tsv
+#    │   ├── taxonomy.tsv
+#    │   └── ...
+
+# 3. Edit the script configuration:
+#    - setwd() → your local export/ path
+#    - metadata_file → path to metadata.txt
+
+# 4. Run the script:
+#    Rscript QIIME2_16S_visualization.R
+```
+
+### Output preview
+
+The R scripts generate 6 types of plots and 4 processed data tables under `export/`:
+- **alpha/** — Alpha diversity boxplots (Shannon, Observed features, Faith PD, Evenness)
+- **beta/** — PCoA ordination plots (Bray-Curtis, Jaccard)
+- **taxa/** — Phylum-level stacked barplot and abundance barchart
+- **heatmap/** — Genus-level abundance heatmap (Top N genera)
+- **faprotax/** — FAPROTAX functional prediction input tables
+- **picrust2/** — PICRUSt2 input files (BIOM + FASTA)
+- **feature_tables/** — Processed taxonomy table and genus abundance table
+
+You can preview the generated PDFs in this repository under `examples/export/` to evaluate visualization quality before running on your own data.
 
 ## Notes
 
@@ -191,6 +241,45 @@ seq/<样本名>_2.fq.gz
 - 数据编号：CRA002352
 
 `.qzv` 可视化文件可在 https://view.qiime2.org/ 在线查看。
+
+### R 可视化
+
+流程第 14 步（导出）完成后，可使用 R 脚本进行出版级可视化。
+
+#### 操作流程
+
+```bash
+# 1. 从服务器下载导出文件（工作目录下的 results/export/）
+#    保存到本地目录（如 data/）
+
+# 2. 将 R 脚本放在与 data/ 同级的目录下
+#    export/
+#    ├── QIIME2_16S_visualization.R
+#    ├── data/
+#    │   ├── feature-table.tsv
+#    │   ├── taxonomy.tsv
+#    │   └── ...
+
+# 3. 修改脚本配置：
+#    - setwd() → 本地 export/ 的实际路径
+#    - metadata_file → metadata.txt 路径
+
+# 4. 运行脚本：
+#    Rscript QIIME2_16S_visualization.R
+```
+
+#### 产出预览
+
+R 脚本在 `export/` 下生成 6 类图表和 4 张处理后的数据表：
+- **alpha/** — Alpha 多样性箱线图（Shannon、Observed features、Faith PD、Evenness）
+- **beta/** — PCoA 降维图（Bray-Curtis、Jaccard）
+- **taxa/** — 门水平堆叠柱状图和丰度条形图
+- **heatmap/** — 属水平丰度热图（Top N 属）
+- **faprotax/** — FAPROTAX 功能预测输入表
+- **picrust2/** — PICRUSt2 输入文件（BIOM + FASTA）
+- **feature_tables/** — 处理后的分类学表和属水平丰度表
+
+本仓库 `examples/export/` 下包含示例输出 PDF，可预览可视化效果。
 
 ### 注意事项
 

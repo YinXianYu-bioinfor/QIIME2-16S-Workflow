@@ -34,6 +34,9 @@ results/export/
 nohup.out
 temp/
 
+# Claude Code working files
+.claude/
+
 # But track example files explicitly (override above patterns)
 !/examples/manifest
 !/examples/logs/

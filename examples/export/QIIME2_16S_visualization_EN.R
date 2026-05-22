@@ -1,0 +1,1029 @@
+#!/usr/bin/env Rscript
+#
+# QIIME2 16S Amplicon Analysis - Comprehensive Visualization & Data Preparation Script
+# ================================================================================
+# This script works with standard QIIME2 pipeline export files,
+# generates publication-ready visualizations, and prepares input files
+# for downstream functional prediction (FAPROTAX, PICRUSt2).
+#
+# Usage:
+#   1. Place this script in the QIIME2 export directory
+#   2. Ensure metadata.txt is in the parent directory (../metadata.txt) or modify the path below
+#   3. Open in RStudio and click Source, or run from command line:
+#      Rscript QIIME2_16S_visualization.R
+#
+# Directory structure after running:
+#   export/
+#   ├── alpha/           -- Alpha diversity boxplots
+#   ├── beta/            -- Beta diversity PCoA plots
+#   ├── taxa/            -- Phylum-level composition plots
+#   ├── heatmap/         -- Genus-level heatmap
+#   ├── faprotax/        -- FAPROTAX input table
+#   ├── picrust2/        -- PICRUSt2 input files
+#   └── feature_tables/  -- Processed taxonomy & abundance tables
+# ================================================================================
+
+# ============================================================
+# 0. Configuration - Edit the following paths for your project
+# ============================================================
+
+# [Important] Set working directory to QIIME2 export folder
+# Change the path below to the actual export folder on your computer
+setwd("D:/Drivers/桌面/scripts/amplicon_analysis_script/QIIME2-16S-Workflow/examples/export")
+
+# metadata.txt path (relative to working directory or absolute)
+metadata_file <- "../metadata.txt"
+# If metadata.txt is also in the export directory, change to:
+# metadata_file <- "metadata.txt"
+
+# Group column name in metadata.txt (used for grouping)
+group_col <- "Group"
+
+# Visualization parameters
+alpha_diversity_file <- "data/alpha-diversity.tsv"
+feature_table_file <- "data/feature-table.tsv"
+taxonomy_file <- "data/taxonomy.tsv"
+ordination_file <- "data/ordination.txt"
+distance_matrix_file <- "data/distance-matrix.tsv"
+stats_file <- "data/stats.tsv"
+tree_file <- "data/tree.nwk"
+dna_sequences_file <- "data/dna-sequences.fasta"
+biom_file <- "data/feature-table.biom"
+rarefied_table_file <- "data/rarefied_table.tsv"
+
+# Output subdirectories
+output_dirs <- c(
+  "alpha", "beta", "taxa", "heatmap",
+  "faprotax", "picrust2", "feature_tables"
+)
+
+# Heatmap: number of top genera to display
+top_n_genera <- 30
+
+# Stacked barplot: number of top phyla to show (remaining merged into Others)
+top_n_phyla_stacked <- 8
+
+# Color palette (ggsci journal palettes)
+# Options: "npg" (Nature), "aaas" (Science), "nejm" (NEJM),
+#          "lancet" (Lancet), "jco" (JCO), "jama" (JAMA), "uchicago"
+color_palette <- "npg"
+
+# ============================================================
+# 1. Load Required R Packages
+# ============================================================
+
+cat("========================================\n")
+cat("QIIME2 16S Visualization Pipeline\n")
+cat("========================================\n\n")
+
+required_packages <- c(
+  "ggplot2", "tidyr", "dplyr", "tibble", "readr",
+  "vegan", "ape", "pheatmap", "RColorBrewer", "grDevices",
+  "patchwork", "ggsignif", "ggsci"
+)
+
+check_packages <- function(pkgs) {
+  missing <- c()
+  for (pkg in pkgs) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      missing <- c(missing, pkg)
+    }
+  }
+  if (length(missing) > 0) {
+    cat("Installing missing packages:", paste(missing, collapse = ", "), "\n")
+    install.packages(missing, repos = "https://cloud.r-project.org", quiet = TRUE)
+  }
+  invisible(lapply(pkgs, library, character.only = TRUE, quietly = TRUE))
+}
+
+cat("[1/8] Loading R packages...\n")
+check_packages(required_packages)
+cat("       All packages loaded successfully.\n\n")
+
+# Color helper: generate group colors from ggsci journal palette based on group count
+get_group_colors <- function(n, palette_name = color_palette) {
+  base <- switch(palette_name,
+    npg    = pal_npg()(10),
+    aaas   = pal_aaas()(10),
+    nejm   = pal_nejm()(8),
+    lancet = pal_lancet()(9),
+    jco    = pal_jco()(10),
+    jama   = pal_jama()(7),
+    uchicago = pal_uchicago()(9),
+    pal_npg()(10)
+  )
+  if (n <= length(base)) base[1:n] else grDevices::colorRampPalette(base)(n)
+}
+
+# ============================================================
+# 2. Create Output Directories
+# ============================================================
+
+cat("[2/8] Creating output directories...\n")
+for (dir_name in output_dirs) {
+  if (!dir.exists(dir_name)) {
+    dir.create(dir_name, recursive = TRUE)
+    cat("       Created:", dir_name, "\n")
+  }
+}
+cat("       Output directories ready.\n\n")
+
+# ============================================================
+# 3. Read Metadata
+# ============================================================
+
+cat("[3/8] Reading input data...\n")
+
+if (!file.exists(metadata_file)) {
+  stop("Metadata file not found: ", metadata_file,
+    "\nPlease check the metadata_file path in the Configuration section above.")
+}
+
+metadata <- read.table(
+  metadata_file,
+  sep = "\t",
+  header = TRUE,
+  row.names = 1,
+  check.names = FALSE,
+  comment.char = "",
+  strip.white = TRUE,
+  stringsAsFactors = FALSE
+)
+
+# Clean column names (remove possible '#' prefix)
+colnames(metadata) <- gsub("^#", "", colnames(metadata))
+
+# Check if group column exists
+if (!group_col %in% colnames(metadata)) {
+  stop("Group column '", group_col, "' not found in metadata.\n",
+    "Available columns: ", paste(colnames(metadata), collapse = ", "))
+}
+
+# Convert group column to factor
+metadata[[group_col]] <- as.factor(metadata[[group_col]])
+cat("       Metadata loaded:", nrow(metadata), "samples,",
+  ncol(metadata), "columns\n")
+cat("       Groups:", paste(levels(metadata[[group_col]]), collapse = " / "), "\n")
+
+# ============================================================
+# 4. Read Feature Table
+# ============================================================
+
+if (!file.exists(feature_table_file)) {
+  stop("Feature table not found: ", feature_table_file)
+}
+
+# Skip first comment line (# Constructed from biom file)
+feature_table <- read.table(
+  feature_table_file,
+  sep = "\t",
+  skip = 1,
+  header = TRUE,
+  check.names = FALSE,
+  row.names = 1,
+  comment.char = ""
+)
+
+# Ensure data is a numeric matrix
+feature_table <- as.matrix(feature_table)
+mode(feature_table) <- "numeric"
+
+# Keep only samples present in metadata
+common_samples <- intersect(colnames(feature_table), rownames(metadata))
+feature_table <- feature_table[, common_samples, drop = FALSE]
+metadata <- metadata[common_samples, , drop = FALSE]
+
+cat("       Feature table loaded:", nrow(feature_table), "ASVs,",
+  ncol(feature_table), "samples\n")
+cat("       Total reads:", sum(feature_table), "\n")
+
+# ============================================================
+# 5. Read & Process Taxonomy
+# ============================================================
+
+if (!file.exists(taxonomy_file)) {
+  stop("Taxonomy file not found: ", taxonomy_file)
+}
+
+taxonomy_raw <- read.table(
+  taxonomy_file,
+  sep = "\t",
+  header = TRUE,
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
+
+# Parse taxonomy string into separate levels
+parse_taxonomy <- function(taxon_string) {
+  result <- c("Unassigned", "Unassigned", "Unassigned",
+              "Unassigned", "Unassigned", "Unassigned", "Unassigned")
+  names(result) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+
+  parts <- strsplit(trimws(taxon_string), ";")[[1]]
+  for (part in parts) {
+    if (nchar(part) < 3) next
+    prefix <- substr(part, 1, 1)
+    value <- substr(part, 4, nchar(part))
+    if (value == "") value <- "Unassigned"
+
+    level_name <- switch(prefix,
+      "d" = "Kingdom",
+      "p" = "Phylum",
+      "c" = "Class",
+      "o" = "Order",
+      "f" = "Family",
+      "g" = "Genus",
+      "s" = "Species",
+      NA
+    )
+    if (!is.na(level_name)) {
+      result[level_name] <- value
+    }
+  }
+  return(result)
+}
+
+# Parse all taxonomy strings
+tax_parsed <- t(sapply(taxonomy_raw$Taxon, parse_taxonomy, USE.NAMES = FALSE))
+taxonomy <- as.data.frame(tax_parsed, stringsAsFactors = FALSE)
+taxonomy$FeatureID <- taxonomy_raw[["Feature ID"]]
+taxonomy$Confidence <- taxonomy_raw$Confidence
+
+# Build full taxonomy path (for FAPROTAX)
+taxonomy$FullPath <- apply(tax_parsed, 1, function(x) {
+  paste(x, collapse = ";")
+})
+
+# Build compact path: remove trailing Unassigned
+build_compact_path <- function(levels_vec) {
+  non_na_idx <- which(levels_vec != "Unassigned")
+  if (length(non_na_idx) == 0) return("Unassigned")
+  last_idx <- max(non_na_idx)
+  paste(levels_vec[1:last_idx], collapse = ";")
+}
+taxonomy$CompactPath <- apply(tax_parsed, 1, build_compact_path)
+
+# Create Feature ID to taxonomy mapping
+tax_map <- setNames(taxonomy$FullPath, taxonomy$FeatureID)
+
+cat("       Taxonomy entries:", nrow(taxonomy), "\n")
+cat("       Assigned phyla:", length(unique(taxonomy$Phylum[taxonomy$Phylum != "Unassigned"])), "\n")
+
+# ============================================================
+# 6. Save Processed Data Tables
+# ============================================================
+
+cat("\n[4/8] Saving processed data tables...\n")
+
+# 6a. Processed taxonomy table (split levels, Unassigned filled)
+taxonomy_out <- taxonomy[, c("FeatureID", "Kingdom", "Phylum", "Class",
+                              "Order", "Family", "Genus", "Species",
+                              "FullPath", "Confidence")]
+colnames(taxonomy_out)[1] <- "Feature_ID"
+write.table(
+  taxonomy_out,
+  file = "feature_tables/taxonomy_processed.tsv",
+  sep = "\t",
+  row.names = FALSE,
+  quote = FALSE
+)
+cat("       [OK] feature_tables/taxonomy_processed.tsv\n")
+
+# 6b. Feature table with taxonomy annotation
+merged_data <- as.data.frame(feature_table)
+merged_data$FeatureID <- rownames(merged_data)
+merged_data <- merge(merged_data, taxonomy[, c("FeatureID", "FullPath", "CompactPath")],
+                     by = "FeatureID", all.x = TRUE)
+
+# Reorder columns
+merged_data <- merged_data[, c("FeatureID", "FullPath", "CompactPath",
+                                setdiff(colnames(merged_data),
+                                        c("FeatureID", "FullPath", "CompactPath")))]
+
+write.table(
+  merged_data,
+  file = "feature_tables/feature_table_with_taxonomy.tsv",
+  sep = "\t",
+  row.names = FALSE,
+  quote = FALSE
+)
+cat("       [OK] feature_tables/feature_table_with_taxonomy.tsv\n")
+
+# ============================================================
+# 7. Alpha Diversity Analysis
+# ============================================================
+
+cat("\n[5/8] Generating visualizations...\n")
+cat("       Processing alpha diversity...\n")
+
+# 7a. Calculate alpha diversity metrics
+# ------------------------------------------------------------------
+# Calculate multiple alpha diversity metrics from feature_table using vegan
+ft_t <- t(feature_table)  # Transpose: vegan requires samples as rows, ASVs as columns
+
+observed_features <- specnumber(ft_t)
+shannon_div <- diversity(ft_t, index = "shannon")
+simpson_div <- diversity(ft_t, index = "simpson")
+est_rich <- estimateR(ft_t)
+chao1_div <- est_rich["S.chao1", ]
+ace_div   <- est_rich["S.ACE", ]
+
+# Pielou evenness (read from alpha-diversity.tsv if available)
+pielou_div <- setNames(rep(NA_real_, nrow(ft_t)), rownames(ft_t))
+if (file.exists(alpha_diversity_file)) {
+  alpha_data <- read.table(alpha_diversity_file, sep = "\t",
+    header = TRUE, row.names = 1, check.names = FALSE)
+  if ("pielou_evenness" %in% colnames(alpha_data)) {
+    pielou_div <- alpha_data$pielou_evenness
+  }
+}
+
+# Combine all metrics into a data frame
+alpha_metrics_df <- data.frame(
+  SampleID = names(observed_features),
+  observed_features = observed_features,
+  shannon = shannon_div,
+  simpson = simpson_div,
+  chao1 = chao1_div,
+  ACE = ace_div,
+  pielou_evenness = pielou_div[names(observed_features)],
+  row.names = NULL, stringsAsFactors = FALSE
+)
+
+# Merge with metadata
+alpha_plot_data <- merge(
+  alpha_metrics_df,
+  metadata[, group_col, drop = FALSE],
+  by.x = "SampleID", by.y = "row.names"
+)
+
+# Save all alpha diversity metrics to file
+write.table(alpha_plot_data,
+  file = "feature_tables/alpha_diversity_metrics.tsv",
+  sep = "\t", row.names = FALSE, quote = FALSE)
+cat("       [OK] feature_tables/alpha_diversity_metrics.tsv\n")
+
+# Plotting metrics (4 main metrics)
+plot_metrics <- c("observed_features", "shannon", "simpson", "chao1")
+metric_labels <- c(
+  observed_features = "Observed ASVs",
+  shannon = "Shannon",
+  simpson = "Simpson",
+  chao1 = "Chao1"
+)
+
+# Convert to long format, filter non-finite values
+alpha_long <- pivot_longer(
+  alpha_plot_data,
+  cols = all_of(plot_metrics),
+  names_to = "Metric", values_to = "Value"
+)
+alpha_long[[group_col]] <- as.factor(alpha_long[[group_col]])
+alpha_long <- alpha_long[is.finite(alpha_long$Value), ]
+
+# Report filtered samples
+for (m in plot_metrics) {
+  n_inf <- sum(!is.finite(alpha_plot_data[[m]]))
+  if (n_inf > 0) {
+    cat("        [Note]", m, "contains", n_inf, "non-finite values\n")
+  }
+}
+
+# 7b. Alpha diversity statistical tests
+# ------------------------------------------------------------------
+cat("       Alpha diversity statistics:\n")
+
+for (metric in plot_metrics) {
+  df_sub <- alpha_plot_data[is.finite(alpha_plot_data[[metric]]), ]
+
+  # Kruskal-Wallis test
+  kw <- kruskal.test(as.formula(paste(metric, "~", group_col)), data = df_sub)
+  cat("         ", metric, ": Kruskal-Wallis p =",
+      format.pval(kw$p.value, digits = 4), "\n")
+
+  # Pairwise Wilcoxon test with BH correction
+  pw <- suppressWarnings(
+    pairwise.wilcox.test(df_sub[[metric]], df_sub[[group_col]],
+                         p.adjust.method = "BH"))
+  p_mat <- pw$p.value
+  if (!is.null(p_mat)) {
+    g_levels <- levels(df_sub[[group_col]])
+    for (i in seq_len(length(g_levels) - 1)) {
+      for (j in (i + 1):length(g_levels)) {
+        pv <- tryCatch(
+          if (g_levels[j] %in% rownames(p_mat) && g_levels[i] %in% colnames(p_mat))
+            p_mat[g_levels[j], g_levels[i]]
+          else if (g_levels[i] %in% rownames(p_mat) && g_levels[j] %in% colnames(p_mat))
+            p_mat[g_levels[i], g_levels[j]]
+          else NA_real_,
+          error = function(e) NA_real_)
+        if (!is.na(pv)) {
+          star <- if (pv < 0.001) "***" else if (pv < 0.01) "**" else if (pv < 0.05) "*" else "ns"
+          cat("             ", g_levels[i], "vs", g_levels[j],
+              ": p =", format.pval(pv, digits = 4), star, "\n")
+        }
+      }
+    }
+  }
+}
+
+# 7c. Alpha diversity boxplots with significance stars (4-panel)
+# ------------------------------------------------------------------
+plot_list <- list()
+
+for (metric in plot_metrics) {
+  df_sub <- alpha_long[alpha_long$Metric == metric, ]
+  g_levels <- levels(df_sub[[group_col]])
+
+  # Pairwise Wilcoxon test
+  pw <- suppressWarnings(
+    pairwise.wilcox.test(df_sub$Value, df_sub[[group_col]],
+                         p.adjust.method = "BH"))
+  p_mat <- pw$p.value
+
+  # Build ggsignif parameters
+  comp_list <- list()
+  annot_vec <- c()
+  for (i in seq_len(length(g_levels) - 1)) {
+    for (j in (i + 1):length(g_levels)) {
+      pv <- tryCatch(
+        if (g_levels[j] %in% rownames(p_mat) && g_levels[i] %in% colnames(p_mat))
+          p_mat[g_levels[j], g_levels[i]]
+        else if (g_levels[i] %in% rownames(p_mat) && g_levels[j] %in% colnames(p_mat))
+          p_mat[g_levels[i], g_levels[j]]
+        else NA_real_,
+        error = function(e) NA_real_)
+      if (!is.na(pv)) {
+        comp_list <- c(comp_list, list(c(g_levels[i], g_levels[j])))
+        star <- if (pv < 0.001) "***" else if (pv < 0.01) "**" else if (pv < 0.05) "*" else "ns"
+        annot_vec <- c(annot_vec, star)
+      }
+    }
+  }
+
+  p <- ggplot(df_sub, aes(x = !!sym(group_col), y = Value, fill = !!sym(group_col))) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.6, width = 0.6) +
+    geom_jitter(aes(color = !!sym(group_col)), width = 0.15, size = 1.5, alpha = 0.8) +
+    scale_fill_manual(values = get_group_colors(nlevels(df_sub[[group_col]]))) +
+    scale_color_manual(values = get_group_colors(nlevels(df_sub[[group_col]]))) +
+    labs(title = metric_labels[metric], x = NULL, y = "Value") +
+    theme_bw(base_size = 12) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+          legend.position = "none",
+          axis.text.x = element_text(angle = 45, hjust = 1),
+          panel.grid.minor = element_blank())
+
+  if (length(comp_list) > 0) {
+    p <- p + geom_signif(comparisons = comp_list, annotation = annot_vec,
+                         step_increase = 0.1, tip_length = 0.02, textsize = 3.5)
+  }
+  plot_list[[metric]] <- p
+}
+
+# 2x2 layout
+p_alpha_combined <- wrap_plots(plotlist = plot_list, ncol = 2, nrow = 2)
+ggsave(filename = "alpha/alpha_diversity_boxplot.pdf",
+       plot = p_alpha_combined, width = 10, height = 8, device = cairo_pdf)
+cat("       [OK] alpha/alpha_diversity_boxplot.pdf\n")
+
+# 7d. Rarefaction curves (group-averaged)
+# ------------------------------------------------------------------
+cat("       Plotting rarefaction curves...\n")
+
+# Manual rarefaction: use apply + rarefy to compute matrix
+rarefy_step <- 100
+min_depth <- min(rowSums(ft_t))
+rarefy_depths <- seq(from = rarefy_step, to = min_depth, by = rarefy_step)
+
+rare_mat <- suppressWarnings(apply(ft_t, 1, function(row) {
+  rarefy(row, rarefy_depths)
+}))
+# rare_mat: matrix, rows = sequencing depth, columns = samples
+rare_df <- data.frame(
+  SampleID = rep(colnames(rare_mat), each = nrow(rare_mat)),
+  Reads    = rep(rarefy_depths, ncol(rare_mat)),
+  ASVs     = as.vector(rare_mat),
+  stringsAsFactors = FALSE
+)
+# Match group info by sample ID
+rare_df[[group_col]] <- metadata[as.character(rare_df$SampleID), group_col, drop = TRUE]
+
+# Calculate mean and SE per group and read depth (base R aggregate)
+rare_agg <- aggregate(
+  x = rare_df$ASVs,
+  by = list(Group = rare_df[[group_col]], Reads = rare_df$Reads),
+  FUN = function(x) c(mean = mean(x, na.rm = TRUE), se = sd(x, na.rm = TRUE) / sqrt(length(x)))
+)
+rare_summary <- do.call(data.frame, rare_agg)
+colnames(rare_summary) <- c(group_col, "Reads", "mean_ASVs", "se_ASVs")
+
+p_rarefaction <- ggplot(rare_summary, aes(x = Reads, y = mean_ASVs,
+                                           color = !!sym(group_col),
+                                           fill = !!sym(group_col))) +
+  geom_ribbon(aes(ymin = mean_ASVs - se_ASVs, ymax = mean_ASVs + se_ASVs),
+              alpha = 0.2, color = NA) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = get_group_colors(nlevels(rare_summary[[group_col]]))) +
+  scale_fill_manual(values = get_group_colors(nlevels(rare_summary[[group_col]]))) +
+  labs(title = "Rarefaction Curves",
+       x = "Number of Reads", y = "Number of ASVs",
+       color = group_col, fill = group_col) +
+  theme_bw(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "right", panel.grid.minor = element_blank())
+
+ggsave(filename = "alpha/rarefaction_curves.pdf",
+       plot = p_rarefaction, width = 8, height = 6, device = cairo_pdf)
+cat("       [OK] alpha/rarefaction_curves.pdf\n")
+
+# ============================================================
+# 8. Beta Diversity - PCoA and PERMANOVA
+# ============================================================
+
+cat("       Processing beta diversity...\n")
+
+# Filter out ASVs with zero counts across all samples
+ft_sub <- feature_table[rowSums(feature_table) > 0, ]
+
+# ---------- 8a. Bray-Curtis PCoA ----------
+cat("       Bray-Curtis PCoA...\n")
+bc_dist <- vegdist(t(ft_sub), method = "bray")
+
+pcoa_result <- cmdscale(bc_dist, k = min(10, ncol(ft_sub) - 1), eig = TRUE)
+var_exp <- round(pcoa_result$eig[1:4] / sum(pcoa_result$eig[pcoa_result$eig > 0]) * 100, 1)
+
+pcoa_df <- as.data.frame(pcoa_result$points)
+colnames(pcoa_df) <- paste0("PCo", seq_len(ncol(pcoa_df)))
+pcoa_df$SampleID <- rownames(pcoa_df)
+pcoa_df <- merge(pcoa_df, metadata[, group_col, drop = FALSE],
+                 by.x = "SampleID", by.y = "row.names")
+
+# PERMANOVA
+adonis_formula <- as.formula(paste("bc_dist ~", group_col))
+adonis_result <- adonis2(adonis_formula, data = metadata, permutations = 999)
+print(adonis_result)
+r2 <- round(adonis_result[1, "R2"], 3)
+p_col <- grep("Pr", colnames(adonis_result))[1]
+pval <- adonis_result[1, p_col]
+pval_str <- ifelse(pval < 0.001, format.pval(pval, digits = 4),
+                   paste0("= ", format.pval(pval, digits = 4)))
+
+# PCoA plot
+p_pcoa <- ggplot(pcoa_df, aes(x = PCo1, y = PCo2, color = !!sym(group_col))) +
+  geom_point(size = 3, alpha = 0.8)
+
+min_group_size <- min(table(pcoa_df[[group_col]]))
+if (min_group_size >= 4) {
+  p_pcoa <- p_pcoa +
+    stat_ellipse(aes(fill = !!sym(group_col)),
+      geom = "polygon", alpha = 0.1, level = 0.95, show.legend = FALSE)
+}
+
+p_pcoa <- p_pcoa +
+  scale_color_manual(values = get_group_colors(nlevels(pcoa_df[[group_col]]))) +
+  scale_fill_manual(values = get_group_colors(nlevels(pcoa_df[[group_col]]))) +
+  labs(title = "Beta Diversity - Bray-Curtis PCoA",
+       x = paste0("PCo1 (", var_exp[1], "%)"),
+       y = paste0("PCo2 (", var_exp[2], "%)"),
+       color = group_col,
+       caption = paste0("PERMANOVA: R² = ", r2, ", p ", pval_str)) +
+  theme_bw(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "right", panel.grid.minor = element_blank(),
+        plot.caption = element_text(hjust = 0.5, size = 10))
+
+ggsave(filename = "beta/beta_diversity_pcoa_bray_curtis.pdf",
+       plot = p_pcoa, width = 8, height = 6, device = cairo_pdf)
+cat("       [OK] beta/beta_diversity_pcoa_bray_curtis.pdf\n")
+
+# ---------- 8b. Jaccard PCoA ----------
+cat("       Jaccard PCoA...\n")
+jacc_dist <- vegdist(t(ft_sub), method = "jaccard", binary = TRUE)
+
+pcoa_jacc <- cmdscale(jacc_dist, k = min(10, ncol(ft_sub) - 1), eig = TRUE)
+var_exp_jacc <- round(pcoa_jacc$eig[1:4] / sum(pcoa_jacc$eig[pcoa_jacc$eig > 0]) * 100, 1)
+
+pcoa_jacc_df <- as.data.frame(pcoa_jacc$points)
+colnames(pcoa_jacc_df) <- paste0("PCo", seq_len(ncol(pcoa_jacc_df)))
+pcoa_jacc_df$SampleID <- rownames(pcoa_jacc_df)
+pcoa_jacc_df <- merge(pcoa_jacc_df, metadata[, group_col, drop = FALSE],
+                      by.x = "SampleID", by.y = "row.names")
+
+# PERMANOVA
+adonis_jacc <- adonis2(as.formula(paste("jacc_dist ~", group_col)),
+                       data = metadata, permutations = 999)
+print(adonis_jacc)
+r2_jacc <- round(adonis_jacc[1, "R2"], 3)
+p_col_jacc <- grep("Pr", colnames(adonis_jacc))[1]
+pval_jacc <- adonis_jacc[1, p_col_jacc]
+pval_jacc_str <- ifelse(pval_jacc < 0.001, format.pval(pval_jacc, digits = 4),
+                        paste0("= ", format.pval(pval_jacc, digits = 4)))
+
+# Jaccard PCoA plot
+p_jacc <- ggplot(pcoa_jacc_df, aes(x = PCo1, y = PCo2, color = !!sym(group_col))) +
+  geom_point(size = 3, alpha = 0.8)
+
+if (min_group_size >= 4) {
+  p_jacc <- p_jacc +
+    stat_ellipse(aes(fill = !!sym(group_col)),
+      geom = "polygon", alpha = 0.1, level = 0.95, show.legend = FALSE)
+}
+
+p_jacc <- p_jacc +
+  scale_color_manual(values = get_group_colors(nlevels(pcoa_jacc_df[[group_col]]))) +
+  scale_fill_manual(values = get_group_colors(nlevels(pcoa_jacc_df[[group_col]]))) +
+  labs(title = "Beta Diversity - Jaccard PCoA",
+       x = paste0("PCo1 (", var_exp_jacc[1], "%)"),
+       y = paste0("PCo2 (", var_exp_jacc[2], "%)"),
+       color = group_col,
+       caption = paste0("PERMANOVA: R² = ", r2_jacc, ", p ", pval_jacc_str)) +
+  theme_bw(base_size = 14) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "right", panel.grid.minor = element_blank(),
+        plot.caption = element_text(hjust = 0.5, size = 10))
+
+ggsave(filename = "beta/beta_diversity_pcoa_jaccard.pdf",
+       plot = p_jacc, width = 8, height = 6, device = cairo_pdf)
+cat("       [OK] beta/beta_diversity_pcoa_jaccard.pdf\n")
+cat("\n")
+
+# ============================================================
+# 9. Phylum-Level Stacked Bar Plot
+# ============================================================
+
+cat("       Processing phylum-level composition...\n")
+
+# Map each ASV to its phylum
+asv_phylum <- setNames(taxonomy$Phylum, taxonomy$FeatureID)
+
+# Keep only ASVs present in feature table
+common_asvs <- intersect(names(asv_phylum), rownames(feature_table))
+asv_phylum <- asv_phylum[common_asvs]
+ft_phylum <- feature_table[common_asvs, , drop = FALSE]
+
+if (length(common_asvs) > 0) {
+  # Aggregate counts by phylum
+  phylum_levels <- unique(asv_phylum)
+  phylum_counts <- matrix(0, nrow = length(phylum_levels), ncol = ncol(ft_phylum))
+  rownames(phylum_counts) <- phylum_levels
+  colnames(phylum_counts) <- colnames(ft_phylum)
+
+  for (i in seq_along(asv_phylum)) {
+    phylum_counts[asv_phylum[i], ] <- phylum_counts[asv_phylum[i], ] + ft_phylum[i, ]
+  }
+
+  # Convert to relative abundance (%)
+  phylum_rel <- sweep(phylum_counts, 2, colSums(phylum_counts), "/") * 100
+
+  # Convert to long format
+  phylum_df <- as.data.frame(phylum_rel)
+  phylum_df$Phylum <- rownames(phylum_df)
+
+  phylum_long <- pivot_longer(phylum_df, cols = -Phylum, names_to = "SampleID", values_to = "Abundance")
+  phylum_long <- merge(phylum_long, metadata[, group_col, drop = FALSE],
+                       by.x = "SampleID", by.y = "row.names")
+
+  # Merge low-abundance phyla into Others
+  phylum_mean_abund <- aggregate(Abundance ~ Phylum, data = phylum_long, FUN = mean)
+  phylum_mean_abund <- phylum_mean_abund[order(phylum_mean_abund$Abundance, decreasing = TRUE), ]
+  top_phyla_stacked <- head(phylum_mean_abund$Phylum, top_n_phyla_stacked)
+  phylum_long$Phylum_display <- ifelse(
+    phylum_long$Phylum %in% top_phyla_stacked,
+    phylum_long$Phylum,
+    "Others"
+  )
+  phylum_long$Phylum_display <- factor(phylum_long$Phylum_display,
+    levels = c(top_phyla_stacked, "Others"))
+
+  # Color: top phyla use ggsci palette, Others uses gray
+  n_top <- length(top_phyla_stacked)
+  stk_colors <- get_group_colors(max(n_top, 3))[1:n_top]
+  stk_colors <- setNames(c(stk_colors, "#BBBBBB"), c(top_phyla_stacked, "Others"))
+
+  # Sort samples by group
+  sample_levels <- unique(as.character(phylum_long$SampleID))
+  sample_levels <- sample_levels[order(phylum_long[[group_col]][match(sample_levels, phylum_long$SampleID)])]
+  phylum_long$SampleID <- factor(phylum_long$SampleID, levels = sample_levels)
+
+  p_phylum_bar <- ggplot(phylum_long, aes(x = SampleID, y = Abundance, fill = Phylum_display)) +
+    geom_bar(stat = "identity", width = min(0.95, 18 / ncol(feature_table))) +
+    scale_fill_manual(values = stk_colors) +
+    labs(
+      title = "Phylum Composition (Relative Abundance)",
+      x = "Sample",
+      y = "Relative Abundance (%)",
+      fill = "Phylum"
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.text.x = element_text(angle = 60, hjust = 1, size = 8),
+      legend.position = "bottom",
+      legend.text = element_text(size = 7),
+      legend.key.size = unit(0.4, "cm"),
+      panel.grid.major.x = element_blank()
+    ) +
+    guides(fill = guide_legend(ncol = 4)) +
+    facet_grid(as.formula(paste("~", group_col)), scales = "free_x", space = "free")
+
+  ggsave(
+    filename = "taxa/phylum_stacked_barplot.pdf",
+    plot = p_phylum_bar,
+    width = max(8, min(ncol(feature_table) * 0.35, 25)),
+    height = 6,
+    device = cairo_pdf
+  )
+  cat("       [OK] taxa/phylum_stacked_barplot.pdf\n")
+
+  # ============================================================
+  # 10. Phylum-Level Abundance Bar Chart (aggregated)
+  # ============================================================
+
+  # Calculate mean relative abundance per group
+  phylum_group_mean <- phylum_long %>%
+    group_by(!!sym(group_col), Phylum) %>%
+    summarise(MeanAbundance = mean(Abundance), SD = sd(Abundance), .groups = "drop")
+
+  # Calculate overall mean
+  phylum_overall <- phylum_long %>%
+    group_by(Phylum) %>%
+    summarise(MeanAbundance = mean(Abundance), SD = sd(Abundance), .groups = "drop") %>%
+    arrange(desc(MeanAbundance))
+  phylum_overall[[group_col]] <- "Overall"
+
+  # Take top N, merge remaining into Others
+  top_n_phyla <- 7
+  top_phyla <- phylum_overall$Phylum[1:min(top_n_phyla, nrow(phylum_overall))]
+  top_phyla <- top_phyla[top_phyla != "Unassigned"]
+  top_phyla <- c(top_phyla, "Unassigned")
+
+  phylum_group_mean$Phylum_grouped <- ifelse(
+    phylum_group_mean$Phylum %in% top_phyla,
+    phylum_group_mean$Phylum,
+    "Others"
+  )
+
+  phylum_grouped <- phylum_group_mean %>%
+    group_by(!!sym(group_col), Phylum_grouped) %>%
+    summarise(MeanAbundance = sum(MeanAbundance), .groups = "drop")
+
+  # Order by overall relative abundance descending, Others always at bottom
+  phylum_grouped$Phylum_grouped <- factor(phylum_grouped$Phylum_grouped,
+    levels = c(top_phyla, "Others"))
+
+  phyla_group_levels <- levels(phylum_grouped$Phylum_grouped)
+  phyla_group_levels <- phyla_group_levels[phyla_group_levels != "Others"]
+  phy_colors <- pal_jco()(10)
+  phy_colors <- grDevices::colorRampPalette(phy_colors)(length(phyla_group_levels))
+  names(phy_colors) <- phyla_group_levels
+  all_colors <- c(phy_colors, c("Others" = "#A9A9A9"))
+
+  p_phylum_abundance <- ggplot(phylum_grouped,
+                               aes(x = !!sym(group_col), y = MeanAbundance,
+                                   fill = Phylum_grouped)) +
+    geom_bar(stat = "identity", width = 0.7) +
+    scale_fill_manual(values = all_colors) +
+    labs(
+      title = paste0("Top ", top_n_phyla, " Phyla (Mean Relative Abundance)"),
+      x = group_col,
+      y = "Mean Relative Abundance (%)",
+      fill = "Phylum"
+    ) +
+    theme_bw(base_size = 14) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "right"
+    )
+
+  ggsave(
+    filename = "taxa/phylum_abundance_barchart.pdf",
+    plot = p_phylum_abundance,
+    width = 7,
+    height = 6,
+    device = cairo_pdf
+  )
+  cat("       [OK] taxa/phylum_abundance_barchart.pdf\n")
+
+  # ============================================================
+  # 11. Genus-Level Heatmap
+  # ============================================================
+
+  cat("       Generating genus-level heatmap...\n")
+
+  # Map ASVs to genus
+  asv_genus <- setNames(taxonomy$Genus, taxonomy$FeatureID)
+  asv_genus <- asv_genus[common_asvs]
+
+  # Aggregate counts by genus
+  genus_levels <- unique(asv_genus)
+  genus_counts <- matrix(0, nrow = length(genus_levels), ncol = ncol(ft_phylum))
+  rownames(genus_counts) <- genus_levels
+  colnames(genus_counts) <- colnames(ft_phylum)
+
+  for (i in seq_along(asv_genus)) {
+    genus_counts[asv_genus[i], ] <- genus_counts[asv_genus[i], ] + ft_phylum[i, ]
+  }
+
+  # Remove Unassigned
+  if ("Unassigned" %in% rownames(genus_counts)) {
+    genus_counts <- genus_counts[rownames(genus_counts) != "Unassigned", , drop = FALSE]
+  }
+
+  # Select top N genera
+  genus_total_abundance <- rowSums(genus_counts)
+  genus_sorted <- sort(genus_total_abundance, decreasing = TRUE)
+  top_genera <- names(genus_sorted)[1:min(top_n_genera, length(genus_sorted))]
+
+  if (length(top_genera) >= 3) {
+    genus_heatmap_data <- genus_counts[top_genera, , drop = FALSE]
+
+    # Log10 transform (add pseudocount to avoid log(0))
+    genus_heatmap_log <- log10(genus_heatmap_data + 1)
+
+    # Sample group annotations
+    sample_groups <- metadata[colnames(genus_heatmap_log), group_col, drop = FALSE]
+    annotation_colors <- list()
+    annotation_colors[[group_col]] <- setNames(
+      get_group_colors(nlevels(sample_groups[[group_col]])),
+      levels(sample_groups[[group_col]])
+    )
+
+    cairo_pdf("heatmap/genus_heatmap.pdf",
+        width = max(8, ncol(genus_heatmap_log) * 0.4),
+        height = max(6, nrow(genus_heatmap_log) * 0.35))
+    pheatmap(
+      genus_heatmap_log,
+      annotation_col = sample_groups,
+      annotation_colors = annotation_colors,
+      cluster_rows = TRUE,
+      cluster_cols = TRUE,
+      show_rownames = TRUE,
+      show_colnames = TRUE,
+      fontsize_row = 8,
+      fontsize_col = 7,
+      color = colorRampPalette(c("#4DBBD5", "white", "#E64B35"))(100),
+      main = paste0("Top ", length(top_genera), " Genera (log10 Abundance)"),
+      border_color = NA
+    )
+    dev.off()
+    cat("       [OK] heatmap/genus_heatmap.pdf\n")
+  } else {
+    cat("       [SKIP] Too few classified genera for heatmap (< 3)\n")
+  }
+
+  # ============================================================
+  # 12. Save Genus Abundance Table
+  # ============================================================
+
+  genus_abundance_df <- as.data.frame(genus_counts)
+  genus_abundance_df$Genus <- rownames(genus_abundance_df)
+  genus_abundance_df <- genus_abundance_df[, c("Genus", setdiff(colnames(genus_abundance_df), "Genus"))]
+
+  write.table(
+    genus_abundance_df,
+    file = "feature_tables/genus_abundance.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+  )
+  cat("       [OK] feature_tables/genus_abundance.tsv\n")
+} else {
+  cat("       [SKIP] No common ASVs between feature table and taxonomy\n")
+}
+
+# ============================================================
+# 13. FAPROTAX Input Table
+# ============================================================
+
+cat("\n[6/8] Preparing FAPROTAX input files...\n")
+
+# FAPROTAX input format requirements:
+#   - Rows: full taxonomy paths
+#   - Columns: samples
+#   - Values: abundance (counts)
+# Uses rarefied_table.biom (i.e. rarefied_table.tsv) as abundance data source
+# taxonomy.tsv for taxonomy mapping; output strips header and Confidence column
+
+if (file.exists(rarefied_table_file)) {
+  # Read rarefied feature table
+  rarefied_table <- read.table(
+    rarefied_table_file,
+    sep = "\t",
+    skip = 1,
+    header = TRUE,
+    check.names = FALSE,
+    row.names = 1,
+    comment.char = ""
+  )
+  rarefied_table <- as.matrix(rarefied_table)
+  mode(rarefied_table) <- "numeric"
+
+  # Keep only samples present in metadata
+  common_rare_samples <- intersect(colnames(rarefied_table), rownames(metadata))
+  rarefied_table <- rarefied_table[, common_rare_samples, drop = FALSE]
+
+  # ASV to FullPath mapping (taxonomy parsed in section 5)
+  asv_fullpath <- setNames(taxonomy$FullPath, taxonomy$FeatureID)
+
+  # Keep only ASVs common to both rarefied table and taxonomy
+  common_rare_asvs <- intersect(names(asv_fullpath), rownames(rarefied_table))
+  if (length(common_rare_asvs) > 0) {
+    asv_fullpath <- asv_fullpath[common_rare_asvs]
+    ft_rare <- rarefied_table[common_rare_asvs, , drop = FALSE]
+
+    # Aggregate by full taxonomy path
+    path_levels <- unique(asv_fullpath)
+    path_counts <- matrix(0, nrow = length(path_levels), ncol = ncol(ft_rare))
+    rownames(path_counts) <- path_levels
+    colnames(path_counts) <- colnames(ft_rare)
+
+    for (i in seq_along(asv_fullpath)) {
+      path_counts[asv_fullpath[i], ] <- path_counts[asv_fullpath[i], ] + ft_rare[i, ]
+    }
+
+    # Write FAPROTAX input table (no header col.names = FALSE, no Confidence column)
+    faprotax_df <- as.data.frame(path_counts)
+    faprotax_df <- rownames_to_column(faprotax_df, var = "Taxonomy")
+
+    write.table(
+      faprotax_df,
+      file = "faprotax/FAPROTAX_input_table.tsv",
+      sep = "\t",
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE
+    )
+    cat("       [OK] faprotax/FAPROTAX_input_table.tsv\n")
+    cat("       ", nrow(faprotax_df), "taxonomic groups,", ncol(faprotax_df) - 1, "samples\n")
+
+    # Integer version
+    faprotax_int <- as.data.frame(lapply(faprotax_df, function(x) {
+      if (is.numeric(x)) as.integer(x) else x
+    }))
+    write.table(
+      faprotax_int,
+      file = "faprotax/FAPROTAX_input_table_int.tsv",
+      sep = "\t",
+      row.names = FALSE,
+      col.names = FALSE,
+      quote = FALSE
+    )
+    cat("       [OK] faprotax/FAPROTAX_input_table_int.tsv (integer format)\n")
+  } else {
+    cat("       [SKIP] No common ASVs between rarefied table and taxonomy\n")
+  }
+} else {
+  cat("       [SKIP] Rarefied table not found (", rarefied_table_file, ")\n")
+}
+
+# ============================================================
+# 14. PICRUSt2 Input File Preparation
+# ============================================================
+
+cat("\n[7/8] Preparing PICRUSt2 input files...\n")
+
+# Copy feature-table.biom (preferred PICRUSt2 input)
+if (file.exists(biom_file)) {
+  file.copy(biom_file, "picrust2/feature-table.biom", overwrite = TRUE)
+  cat("       [OK] picrust2/feature-table.biom\n")
+} else if (file.exists(feature_table_file)) {
+  file.copy(feature_table_file, "picrust2/feature-table.tsv", overwrite = TRUE)
+  cat("       [OK] picrust2/feature-table.tsv (BIOM not found, using TSV)\n")
+} else {
+  cat("       [SKIP] No feature table found\n")
+}
+
+# Copy representative sequences
+if (file.exists(dna_sequences_file)) {
+  file.copy(dna_sequences_file, "picrust2/dna-sequences.fasta", overwrite = TRUE)
+  cat("       [OK] picrust2/dna-sequences.fasta\n")
+} else {
+  cat("       [SKIP] dna-sequences.fasta not found\n")
+}
+
+
+# ============================================================
+# 15. Completion Summary
+# ============================================================
+
+cat("\n[8/8] Pipeline complete!\n")
+cat("========================================\n")
+cat("Output summary:\n")
+cat("========================================\n")
+cat("  alpha/alpha_diversity_boxplot.pdf           - Alpha diversity boxplots (4 metrics with significance)\n")
+cat("  alpha/rarefaction_curves.pdf               - Rarefaction curves\n")
+cat("  beta/beta_diversity_pcoa_bray_curtis.pdf   - Beta diversity Bray-Curtis PCoA (with PERMANOVA)\n")
+cat("  beta/beta_diversity_pcoa_jaccard.pdf       - Beta diversity Jaccard PCoA (with PERMANOVA)\n")
+cat("  taxa/phylum_stacked_barplot.pdf              - Phylum stacked bar plot\n")
+cat("  taxa/phylum_abundance_barchart.pdf           - Phylum abundance bar chart\n")
+cat("  heatmap/genus_heatmap.pdf                    - Genus heatmap\n")
+cat("  faprotax/FAPROTAX_input_table.tsv            - FAPROTAX input table\n")
+cat("  picrust2/feature-table.biom                  - PICRUSt2 feature table\n")
+cat("  picrust2/dna-sequences.fasta                 - PICRUSt2 representative sequences\n")
+cat("  feature_tables/taxonomy_processed.tsv        - Taxonomy split by level\n")
+cat("  feature_tables/genus_abundance.tsv           - Genus abundance table\n")
+cat("  feature_tables/alpha_diversity_metrics.tsv   - Alpha diversity metrics table\n")
+cat("  feature_tables/feature_table_with_taxonomy.tsv - Feature table with taxonomy\n")
+cat("========================================\n")
+cat("Script ran successfully!\n")
