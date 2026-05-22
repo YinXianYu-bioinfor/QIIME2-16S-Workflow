@@ -18,16 +18,20 @@ This pipeline covers the complete 16S amplicon data analysis workflow:
 - Miniconda (or Anaconda)
 - Two conda environments (see install script):
   - `qc_preprocess`: FastQC, cutadapt, MultiQC
-  - `qiime2-2023.2`: QIIME2 amplicon distribution
-- SILVA-138 classifier (`silva-138-99-nb-classifier.qza`)
+  - `qiime2-2025.7`: QIIME2 amplicon distribution (2023.2 available as fallback)
+- SILVA-138.2 classifier (`SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza`)
+  - **Compatibility**: SILVA138.2 requires qiime2 ≥ 2023.x (this pipeline uses 2025.7)
+  - For qiime2-2023.2, use `silva-138-99-nb-classifier.qza` instead
 
 ## Quick Start
 
 ### 1. Environment Setup
 
-```bash
-bash qiime2-16s-pipeline_install.sh
-```
+Open the install script and **manually run the commands step by step**:
+- `qiime2-16s-pipeline_install_en.sh` (English)
+- `qiime2-16s-pipeline_install.sh` (中文版)
+
+Some steps (e.g., `conda activate`) require interactive shell execution and cannot be run as a single `bash script.sh`.
 
 ### 2. Data Preparation
 
@@ -41,7 +45,7 @@ Place metadata file (`metadata.txt`) in the working directory (TSV format, first
 
 ### 3. Run Pipeline
 
-Edit working directory and parameters in `qiime2-16s-pipeline.sh`, then execute step by step:
+Edit working directory and parameters in `qiime2-16s-pipeline.sh` (or `qiime2-16s-pipeline_en.sh` for English), then execute step by step:
 
 ```bash
 # Step 0: Edit parameters in the script (wd, metadata path, etc.)
@@ -62,8 +66,10 @@ Edit working directory and parameters in `qiime2-16s-pipeline.sh`, then execute 
 
 ```
 QIIME2-16S-Workflow/
-├── qiime2-16s-pipeline.sh          # Main analysis pipeline
-├── qiime2-16s-pipeline_install.sh  # Environment installation
+├── qiime2-16s-pipeline.sh          # Main analysis pipeline (中文版)
+├── qiime2-16s-pipeline_en.sh       # Main analysis pipeline (English)
+├── qiime2-16s-pipeline_install.sh  # Environment installation (中文版)
+├── qiime2-16s-pipeline_install_en.sh # Environment installation (English)
 ├── examples/                       # Example analysis results
 │   ├── metadata.txt                # Sample metadata reference
 │   ├── manifest                    # Sample manifest reference
@@ -123,16 +129,20 @@ View `.qzv` files online at: https://view.qiime2.org/
 - Miniconda（或 Anaconda）
 - 两个 conda 环境（详见安装脚本）：
   - `qc_preprocess`：FastQC、cutadapt、MultiQC
-  - `qiime2-2023.2`：QIIME2 amplicon 发行版
-- SILVA-138 分类器（`silva-138-99-nb-classifier.qza`）
+  - `qiime2-2025.7`：QIIME2 amplicon 发行版（备选 2023.2）
+- SILVA-138.2 分类器（`SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza`）
+  - **兼容性**：SILVA138.2 要求 qiime2 ≥ 2023 版本（本流程使用 2025.7）
+  - 若使用 qiime2-2023.2，请改用 `silva-138-99-nb-classifier.qza`
 
 ### 快速开始
 
 #### 1. 环境安装
 
-```bash
-bash qiime2-16s-pipeline_install.sh
-```
+打开安装脚本，**逐条手动执行**其中的命令：
+- `qiime2-16s-pipeline_install.sh`（中文版）
+- `qiime2-16s-pipeline_install_en.sh`（English）
+
+部分步骤（如 `conda activate`）需在交互式 shell 中执行，无法通过 `bash script.sh` 一键运行。
 
 #### 2. 数据准备
 

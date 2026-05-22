@@ -19,6 +19,17 @@ results/cutadapt_logs/
 # Core metrics intermediate files
 results/core-metrics-results/
 
+# Generated manifest file
+manifest
+
+# Pipeline runtime logs
+logs/
+
+# Generated QIIME2 visualizations (located in results/)
+results/alpha-rarefaction.qzv
+results/taxa-bar-plots.qzv
+results/export/
+
 # Common pipeline output
 nohup.out
 temp/
