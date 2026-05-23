@@ -6,13 +6,13 @@
 # 生成出版级可视化图表，并准备 FAPROTAX 和 PICRUSt2 下游功能预测的输入文件。
 #
 # 使用方式：
-#   1. 将本脚本放入 QIIME2 项目根目录 (与 metadata.txt 同级, export/ 由 pipeline 生成)
+#   1. 将本脚本放入 QIIME2 项目根目录 (与 metadata.txt 同级, results/export/ 由 pipeline 生成)
 #   2. 修改下方 setwd() 路径后直接运行:
 #      Rscript QIIME2_16S_visualization.R
-#   3. 脚本自动读取 export/ 中的数据, 输出也在该目录下各子目录
+#   3. 脚本自动读取 results/export/ 中的数据, 输出也在该目录下各子目录
 #
 # 运行后目录结构（项目根目录下）：
-#   export/
+#   results/export/
 #   ├── alpha/           -- α多样性箱线图
 #   ├── beta/            -- β多样性 PCoA 图
 #   ├── taxa/            -- 门水平物种组成图
@@ -28,8 +28,8 @@
 
 # 【重要】设置工作目录到 QIIME2 项目根目录
 # 请将下方路径修改为您电脑上项目文件夹的实际路径
-# 项目根目录应包含: metadata.txt、export/ (由 qiime2-16s-pipeline.sh 生成)
-setwd("D:/Drivers/桌面/scripts/amplicon_analysis_script/QIIME2-16S-Workflow/examples")
+# 项目根目录应包含: metadata.txt、results/export/ (由 qiime2-16s-pipeline.sh 生成)
+setwd(".")
 
 # metadata.txt 路径（相对于工作目录或绝对路径）
 metadata_file <- "metadata.txt"
@@ -38,18 +38,18 @@ metadata_file <- "metadata.txt"
 group_col <- "Group"
 
 # 可视化参数
-# 所有输入文件由 qiime2-16s-pipeline.sh 导出至 export/ 目录
-alpha_diversity_file <- "export/evenness_vector.tsv"
-feature_table_file <- "export/feature-table.tsv"
-taxonomy_file <- "export/taxonomy.tsv"
-dna_sequences_file <- "export/dna-sequences.fasta"
-rarefied_biom_file <- "export/rarefied_table.biom"
+# 所有输入文件由 qiime2-16s-pipeline.sh 导出至 results/export/ 目录
+alpha_diversity_file <- "results/export/evenness_vector.tsv"
+feature_table_file <- "results/export/feature-table.tsv"
+taxonomy_file <- "results/export/taxonomy.tsv"
+dna_sequences_file <- "results/export/dna-sequences.fasta"
+rarefied_biom_file <- "results/export/rarefied_table.biom"
 
-# 输出子目录（统一在 export/ 下, 由 qiime2-16s-pipeline.sh 自动创建）
+# 输出子目录（统一在 results/export/ 下, 由 qiime2-16s-pipeline.sh 自动创建）
 output_dirs <- c(
-  "export/alpha", "export/beta", "export/taxa",
-  "export/heatmap", "export/faprotax",
-  "export/picrust2", "export/feature_tables"
+  "results/export/alpha", "results/export/beta", "results/export/taxa",
+  "results/export/heatmap", "results/export/faprotax",
+  "results/export/picrust2", "results/export/feature_tables"
 )
 
 # 热图显示 Top N 属
@@ -277,12 +277,12 @@ taxonomy_out <- taxonomy[, c("FeatureID", "Kingdom", "Phylum", "Class",
 colnames(taxonomy_out)[1] <- "Feature_ID"
 write.table(
   taxonomy_out,
-  file = "export/feature_tables/taxonomy_processed.tsv",
+  file = "results/export/feature_tables/taxonomy_processed.tsv",
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
 )
-cat("       [OK] export/feature_tables/taxonomy_processed.tsv\n")
+cat("       [OK] results/export/feature_tables/taxonomy_processed.tsv\n")
 
 # 6b. 带分类学注释的特征表
 merged_data <- as.data.frame(feature_table)
@@ -297,12 +297,12 @@ merged_data <- merged_data[, c("FeatureID", "FullPath", "CompactPath",
 
 write.table(
   merged_data,
-  file = "export/feature_tables/feature_table_with_taxonomy.tsv",
+  file = "results/export/feature_tables/feature_table_with_taxonomy.tsv",
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
 )
-cat("       [OK] export/feature_tables/feature_table_with_taxonomy.tsv\n")
+cat("       [OK] results/export/feature_tables/feature_table_with_taxonomy.tsv\n")
 
 # ============================================================
 # 7. α 多样性分析
@@ -354,9 +354,9 @@ alpha_plot_data <- merge(
 
 # 保存所有 α 多样性指标到文件
 write.table(alpha_plot_data,
-  file = "export/feature_tables/alpha_diversity_metrics.tsv",
+  file = "results/export/feature_tables/alpha_diversity_metrics.tsv",
   sep = "\t", row.names = FALSE, quote = FALSE)
-cat("       [OK] export/feature_tables/alpha_diversity_metrics.tsv\n")
+cat("       [OK] results/export/feature_tables/alpha_diversity_metrics.tsv\n")
 
 # 绘图指标（4 个主流指标）
 plot_metrics <- c("observed_features", "shannon", "simpson", "chao1")
@@ -477,9 +477,9 @@ for (metric in plot_metrics) {
 
 # 2x2 拼接
 p_alpha_combined <- wrap_plots(plotlist = plot_list, ncol = 2, nrow = 2)
-ggsave(filename = "export/alpha/alpha_diversity_boxplot.pdf",
+ggsave(filename = "results/export/alpha/alpha_diversity_boxplot.pdf",
        plot = p_alpha_combined, width = 10, height = 8, device = cairo_pdf)
-cat("       [OK] export/alpha/alpha_diversity_boxplot.pdf\n")
+cat("       [OK] results/export/alpha/alpha_diversity_boxplot.pdf\n")
 
 # 7d. 稀释曲线（按组平均）
 # ------------------------------------------------------------------
@@ -527,9 +527,9 @@ p_rarefaction <- ggplot(rare_summary, aes(x = Reads, y = mean_ASVs,
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         legend.position = "right", panel.grid.minor = element_blank())
 
-ggsave(filename = "export/alpha/rarefaction_curves.pdf",
+ggsave(filename = "results/export/alpha/rarefaction_curves.pdf",
        plot = p_rarefaction, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] export/alpha/rarefaction_curves.pdf\n")
+cat("       [OK] results/export/alpha/rarefaction_curves.pdf\n")
 
 # ============================================================
 # 8. β 多样性 — PCoA 和 PERMANOVA
@@ -587,9 +587,9 @@ p_pcoa <- p_pcoa +
         legend.position = "right", panel.grid.minor = element_blank(),
         plot.caption = element_text(hjust = 0.5, size = 10))
 
-ggsave(filename = "export/beta/beta_diversity_pcoa_bray_curtis.pdf",
+ggsave(filename = "results/export/beta/beta_diversity_pcoa_bray_curtis.pdf",
        plot = p_pcoa, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] export/beta/beta_diversity_pcoa_bray_curtis.pdf\n")
+cat("       [OK] results/export/beta/beta_diversity_pcoa_bray_curtis.pdf\n")
 
 # ---------- 8b. Jaccard PCoA ----------
 cat("       Jaccard PCoA...\n")
@@ -637,9 +637,9 @@ p_jacc <- p_jacc +
         legend.position = "right", panel.grid.minor = element_blank(),
         plot.caption = element_text(hjust = 0.5, size = 10))
 
-ggsave(filename = "export/beta/beta_diversity_pcoa_jaccard.pdf",
+ggsave(filename = "results/export/beta/beta_diversity_pcoa_jaccard.pdf",
        plot = p_jacc, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] export/beta/beta_diversity_pcoa_jaccard.pdf\n")
+cat("       [OK] results/export/beta/beta_diversity_pcoa_jaccard.pdf\n")
 cat("\n")
 
 # ============================================================
@@ -722,13 +722,13 @@ if (length(common_asvs) > 0) {
     facet_grid(as.formula(paste("~", group_col)), scales = "free_x", space = "free")
 
   ggsave(
-    filename = "export/taxa/phylum_stacked_barplot.pdf",
+    filename = "results/export/taxa/phylum_stacked_barplot.pdf",
     plot = p_phylum_bar,
     width = max(8, min(ncol(feature_table) * 0.35, 25)),
     height = 6,
     device = cairo_pdf
   )
-  cat("       [OK] export/taxa/phylum_stacked_barplot.pdf\n")
+  cat("       [OK] results/export/taxa/phylum_stacked_barplot.pdf\n")
 
   # ============================================================
   # 10. 门水平丰度条形图（聚合）
@@ -792,13 +792,13 @@ if (length(common_asvs) > 0) {
     )
 
   ggsave(
-    filename = "export/taxa/phylum_abundance_barchart.pdf",
+    filename = "results/export/taxa/phylum_abundance_barchart.pdf",
     plot = p_phylum_abundance,
     width = 7,
     height = 6,
     device = cairo_pdf
   )
-  cat("       [OK] export/taxa/phylum_abundance_barchart.pdf\n")
+  cat("       [OK] results/export/taxa/phylum_abundance_barchart.pdf\n")
 
   # ============================================================
   # 11. 属水平热图
@@ -844,7 +844,7 @@ if (length(common_asvs) > 0) {
       levels(sample_groups[[group_col]])
     )
 
-    cairo_pdf("export/heatmap/genus_heatmap.pdf",
+    cairo_pdf("results/export/heatmap/genus_heatmap.pdf",
         width = max(8, ncol(genus_heatmap_log) * 0.4),
         height = max(6, nrow(genus_heatmap_log) * 0.35))
     pheatmap(
@@ -862,7 +862,7 @@ if (length(common_asvs) > 0) {
       border_color = NA
     )
     dev.off()
-    cat("       [OK] export/heatmap/genus_heatmap.pdf\n")
+    cat("       [OK] results/export/heatmap/genus_heatmap.pdf\n")
   } else {
     cat("       [跳过] 已注释的属太少，无法生成热图(< 3)\n")
   }
@@ -877,12 +877,12 @@ if (length(common_asvs) > 0) {
 
   write.table(
     genus_abundance_df,
-    file = "export/feature_tables/genus_abundance.tsv",
+    file = "results/export/feature_tables/genus_abundance.tsv",
     sep = "\t",
     row.names = FALSE,
     quote = FALSE
   )
-  cat("       [OK] export/feature_tables/genus_abundance.tsv\n")
+  cat("       [OK] results/export/feature_tables/genus_abundance.tsv\n")
 } else {
   cat("       [跳过] 特征表与分类学注释之间无共同 ASV\n")
 }
@@ -894,11 +894,11 @@ if (length(common_asvs) > 0) {
 cat("\n[6/8] 准备 FAPROTAX 输入文件...\n")
 
 # FAPROTAX 需要稀疏特征表 (BIOM 格式) 和物种注释文件
-# 直接复制 rarefied_table.biom 和 taxonomy.tsv 到 export/faprotax/ 目录
+# 直接复制 rarefied_table.biom 和 taxonomy.tsv 到 results/export/faprotax/ 目录
 
 if (file.exists(rarefied_biom_file)) {
-  file.copy(rarefied_biom_file, "export/faprotax/rarefied_table.biom", overwrite = TRUE)
-  cat("       [OK] export/faprotax/rarefied_table.biom\n")
+  file.copy(rarefied_biom_file, "results/export/faprotax/rarefied_table.biom", overwrite = TRUE)
+  cat("       [OK] results/export/faprotax/rarefied_table.biom\n")
 } else {
   cat("       [跳过] 未找到稀疏表 (", rarefied_biom_file, ")\n")
 }
@@ -908,11 +908,11 @@ if (file.exists(taxonomy_file)) {
     check.names = FALSE, stringsAsFactors = FALSE)
   tax_faprotax <- tax_raw[, c("Feature ID", "Taxon")]
   # 以二进制模式写入，避免 Windows CRLF 换行符
-  con <- file("export/faprotax/taxonomy.tsv", "wb")
+  con <- file("results/export/faprotax/taxonomy.tsv", "wb")
   write.table(tax_faprotax, file = con,
     sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
   close(con)
-  cat("       [OK] export/faprotax/taxonomy.tsv (已去除表头和 Confidence 列)\n")
+  cat("       [OK] results/export/faprotax/taxonomy.tsv (已去除表头和 Confidence 列)\n")
 } else {
   cat("       [跳过] 未找到物种注释文件 (", taxonomy_file, ")\n")
 }
@@ -930,18 +930,18 @@ if (file.exists(feature_table_file)) {
   ft_lines <- ft_lines[-1]
   ft_lines[1] <- sub("#OTU ID", "#OTUID", ft_lines[1])
   # 以二进制模式写入，避免 Windows CRLF 换行符
-  con <- file("export/picrust2/feature-table.tsv", "wb")
+  con <- file("results/export/picrust2/feature-table.tsv", "wb")
   writeLines(ft_lines, con)
   close(con)
-  cat("       [OK] export/picrust2/feature-table.tsv\n")
+  cat("       [OK] results/export/picrust2/feature-table.tsv\n")
 } else {
   cat("       [跳过] 未找到特征表\n")
 }
 
 # 复制代表序列
 if (file.exists(dna_sequences_file)) {
-  file.copy(dna_sequences_file, "export/picrust2/dna-sequences.fasta", overwrite = TRUE)
-  cat("       [OK] export/picrust2/dna-sequences.fasta\n")
+  file.copy(dna_sequences_file, "results/export/picrust2/dna-sequences.fasta", overwrite = TRUE)
+  cat("       [OK] results/export/picrust2/dna-sequences.fasta\n")
 } else {
   cat("       [跳过] dna-sequences.fasta 未找到\n")
 }
@@ -955,20 +955,20 @@ cat("\n[8/8] 流程执行完毕！\n")
 cat("========================================\n")
 cat("输出文件汇总:\n")
 cat("========================================\n")
-cat("  export/alpha/alpha_diversity_boxplot.pdf           — α 多样性箱线图（4 指标 × 星号标注）\n")
-cat("  export/alpha/rarefaction_curves.pdf               — 稀释曲线\n")
-cat("  export/beta/beta_diversity_pcoa_bray_curtis.pdf   — β 多样性 Bray-Curtis PCoA（PERMANOVA 标注）\n")
-cat("  export/beta/beta_diversity_pcoa_jaccard.pdf       — β 多样性 Jaccard PCoA（PERMANOVA 标注）\n")
-cat("  export/taxa/phylum_stacked_barplot.pdf              — 门水平堆叠柱状图\n")
-cat("  export/taxa/phylum_abundance_barchart.pdf           — 门水平丰度条形图\n")
-cat("  export/heatmap/genus_heatmap.pdf                    — 属水平热图\n")
-cat("  export/faprotax/rarefied_table.biom                 — FAPROTAX 输入 (稀疏特征表)\n")
-cat("  export/faprotax/taxonomy.tsv                        — FAPROTAX 输入 (物种注释)\n")
-cat("  export/picrust2/feature-table.tsv                   — PICRUSt2 特征表\n")
-cat("  export/picrust2/dna-sequences.fasta                 — PICRUSt2 代表序列\n")
-cat("  export/feature_tables/taxonomy_processed.tsv        — 分类学层级拆分表\n")
-cat("  export/feature_tables/genus_abundance.tsv           — 属水平丰度表\n")
-cat("  export/feature_tables/alpha_diversity_metrics.tsv   — α 多样性指标表\n")
-cat("  export/feature_tables/feature_table_with_taxonomy.tsv — 附分类学特征表\n")
+cat("  results/export/alpha/alpha_diversity_boxplot.pdf           — α 多样性箱线图（4 指标 × 星号标注）\n")
+cat("  results/export/alpha/rarefaction_curves.pdf               — 稀释曲线\n")
+cat("  results/export/beta/beta_diversity_pcoa_bray_curtis.pdf   — β 多样性 Bray-Curtis PCoA（PERMANOVA 标注）\n")
+cat("  results/export/beta/beta_diversity_pcoa_jaccard.pdf       — β 多样性 Jaccard PCoA（PERMANOVA 标注）\n")
+cat("  results/export/taxa/phylum_stacked_barplot.pdf              — 门水平堆叠柱状图\n")
+cat("  results/export/taxa/phylum_abundance_barchart.pdf           — 门水平丰度条形图\n")
+cat("  results/export/heatmap/genus_heatmap.pdf                    — 属水平热图\n")
+cat("  results/export/faprotax/rarefied_table.biom                 — FAPROTAX 输入 (稀疏特征表)\n")
+cat("  results/export/faprotax/taxonomy.tsv                        — FAPROTAX 输入 (物种注释)\n")
+cat("  results/export/picrust2/feature-table.tsv                   — PICRUSt2 特征表\n")
+cat("  results/export/picrust2/dna-sequences.fasta                 — PICRUSt2 代表序列\n")
+cat("  results/export/feature_tables/taxonomy_processed.tsv        — 分类学层级拆分表\n")
+cat("  results/export/feature_tables/genus_abundance.tsv           — 属水平丰度表\n")
+cat("  results/export/feature_tables/alpha_diversity_metrics.tsv   — α 多样性指标表\n")
+cat("  results/export/feature_tables/feature_table_with_taxonomy.tsv — 附分类学特征表\n")
 cat("========================================\n")
 cat("脚本运行成功！\n")

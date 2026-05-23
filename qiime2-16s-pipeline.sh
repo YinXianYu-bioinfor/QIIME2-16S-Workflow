@@ -333,7 +333,7 @@ fi
 conda activate qiime2-2025.7
 cd ${wd}
 
-cd results/export/faprotax
+cd ${wd}/results/export/faprotax
 
 # FAPROTAX 脚本路径 (用户按实际修改)
 # 下载: http://www.loucalab.com/archive/FAPROTAX/lib/php/index.php?section=Download
@@ -370,7 +370,7 @@ echo "  功能丰度表:   results/export/faprotax/faprotax.txt"
 conda activate picrust2
 cd ${wd}
 
-cd results/export/picrust2
+cd ${wd}/results/export/picrust2
 
 # 运行 PICRUSt2 管道 (后台运行，等待完成后继续)
 nohup picrust2_pipeline.py -s dna-sequences.fasta -i feature-table.tsv \
@@ -410,3 +410,7 @@ wc -l KEGG*
 # 一站式可视化: 将 QIIME2_16S_visualization.R 放在项目根目录 (与 metadata.txt 同级),
 # 修改 setwd() 后运行 Rscript QIIME2_16S_visualization.R 即可自动读取 results/export/
 # 并生成图表至 results/export/ 下各子目录, 无需手动搬运文件
+
+# 输出项目路径与文件结构
+cd ${wd}
+find . | sed -e 's/[^/]*\//|   /g' -e 's/| *[^|]*$/|-- &/' > Project_file_structure.log

@@ -335,7 +335,7 @@ fi
 conda activate qiime2-2025.7
 cd ${wd}
 
-cd results/export/faprotax
+cd ${wd}/results/export/faprotax
 
 # FAPROTAX script path (modify as needed)
 # Download: http://www.loucalab.com/archive/FAPROTAX/lib/php/index.php?section=Download
@@ -370,7 +370,7 @@ echo "FAPROTAX done: results/export/faprotax/faprotax_report.txt"
 conda activate picrust2
 cd ${wd}
 
-cd results/export/picrust2
+cd ${wd}/results/export/picrust2
 
 # Run PICRUSt2 pipeline (background, wait for completion before annotations)
 nohup picrust2_pipeline.py -s dna-sequences.fasta -i feature-table.tsv \
