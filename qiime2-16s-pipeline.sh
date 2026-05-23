@@ -316,20 +316,97 @@ qiime tools export \
     --input-path qiime2/rooted-tree.qza \
     --output-path results/export
 
-echo "导出完成: results/export/"
-echo "关键文件:"
-echo "  rarefied_table.tsv  — 抽平 ASV 丰度表"
-echo "  feature-table.tsv   — ASV/OTU 丰度表 (R: read.delim / Python: pd.read_csv)"
-echo "  taxonomy.tsv        — 物种注释"
-echo "  dna-sequences.fasta — 代表序列"
-echo "  *.tsv (alpha)       — Alpha 多样性 (Faith PD, Shannon 等)"
-echo "  *_distance_matrix.tsv — Beta 多样性距离矩阵"
-echo "  *_pcoa_results.tsv  — PCoA 降维坐标"
-echo ""
-echo "============================================"
-echo "可视化提示:"
-echo "  将 results/export/ 目录下的文件下载到本地 data/ 目录"
-echo "  将 QIIME2_16S_visualization.R 放到与 data/ 同级的位置"
-echo "  修改脚本中的 setwd() 和 metadata_file 路径后运行:"
-echo "    Rscript QIIME2_16S_visualization.R"
-echo "  生成图表位于: alpha/ beta/ taxa/ heatmap/ 等子目录"
+## 15. 一站式 R 可视化 (需先将 R 脚本放到项目根目录)
+conda activate qiime2-2025.7
+cd ${wd}
+
+# 将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)
+# 修改 setwd() 后即可运行, 脚本将自动读取 results/export/ 中的数据
+# 生成图表至 results/export/ 下各子目录, 并准备 FAPROTAX/PICRUSt2 输入文件
+if [ -f "QIIME2_16S_visualization.R" ]; then
+    Rscript QIIME2_16S_visualization.R
+else
+    echo "请先将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)"
+fi
+
+## 16. FAPROTAX 功能预测分析
+conda activate qiime2-2025.7
+cd ${wd}
+
+cd results/export/faprotax
+
+# FAPROTAX 脚本路径 (用户按实际修改)
+# 下载: http://www.loucalab.com/archive/FAPROTAX/lib/php/index.php?section=Download
+sd=~/db/EasyMicrobiome/script/FAPROTAX_1.2.12
+
+# 制作输入 OTU 表 (添加物种注释到 BIOM)
+biom add-metadata \
+    -i rarefied_table.biom \
+    --observation-metadata-fp taxonomy.tsv \
+    -o rarefied_tax.biom \
+    --sc-separated taxonomy \
+    --observation-header OTUID,taxonomy
+
+# FAPROTAX 功能预测
+python ${sd}/collapse_table.py \
+    -i rarefied_tax.biom \
+    -g ${sd}/FAPROTAX.txt \
+    --collapse_by_metadata 'taxonomy' \
+    -v --force \
+    -o faprotax.txt \
+    -r faprotax_report.txt
+
+# 制作功能注释有无矩阵
+grep '*' -B 1 faprotax_report.txt | grep -v -P '^--$' > faprotax_report.clean
+perl ${sd}/../faprotax_report_sum.pl \
+    -i faprotax_report.clean \
+    -o faprotax_report
+
+echo "FAPROTAX 完成: results/export/faprotax/faprotax_report.txt"
+echo "  功能有无矩阵: results/export/faprotax/faprotax_report.mat"
+echo "  功能丰度表:   results/export/faprotax/faprotax.txt"
+
+## 17. PICRUSt2 功能预测分析
+conda activate picrust2
+cd ${wd}
+
+cd results/export/picrust2
+
+# 运行 PICRUSt2 管道 (后台运行，等待完成后继续)
+nohup picrust2_pipeline.py -s dna-sequences.fasta -i feature-table.tsv \
+    -o ./out -p 16 > picrust2.log 2>&1 &
+echo "PICRUSt2 已后台运行, 查看进度: tail -f results/export/picrust2/picrust2.log"
+
+# 添加 EC/KO/Pathway 注释 (等待 PICRUSt2 管道完成后执行)
+cd out
+add_descriptions.py -i pathways_out/path_abun_unstrat.tsv.gz -m METACYC \
+  -o METACYC.tsv
+add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC \
+  -o EC.tsv
+add_descriptions.py -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO \
+  -o KO.tsv
+
+# KEGG 按层级合并 (需 EasyMicrobiome 数据库)
+db=~/db/EasyMicrobiome/
+python3 ${db}/script/summarizeAbundance.py \
+    -i KO.tsv \
+    -m ${db}/kegg/KO1-4.txt \
+    -c 2,3,4 -s ',+,+,' -n raw \
+    -o KEGG
+wc -l KEGG*
+
+# 导出与功能预测完成: results/export/
+# 关键文件:
+#   rarefied_table.tsv     — 抽平 ASV 丰度表
+#   feature-table.tsv      — ASV/OTU 丰度表
+#   taxonomy.tsv           — 物种注释
+#   dna-sequences.fasta    — 代表序列
+#   *.tsv (alpha)          — Alpha 多样性 (Faith PD, Shannon 等)
+#   *_distance_matrix.tsv  — Beta 多样性距离矩阵
+#   *_pcoa_results.tsv     — PCoA 降维坐标
+#   faprotax/              — FAPROTAX 功能预测结果
+#   picrust2/              — PICRUSt2 功能预测结果
+#
+# 一站式可视化: 将 QIIME2_16S_visualization.R 放在项目根目录 (与 metadata.txt 同级),
+# 修改 setwd() 后运行 Rscript QIIME2_16S_visualization.R 即可自动读取 results/export/
+# 并生成图表至 results/export/ 下各子目录, 无需手动搬运文件

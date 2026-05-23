@@ -64,46 +64,152 @@ Edit working directory and parameters in `qiime2-16s-pipeline.sh` (or `qiime2-16
 
 ## Project Structure
 
+### Runtime directory structure (after pipeline completes)
+
+```
+project_root/                         # your working directory (wd)
+├── metadata.txt                      # sample metadata (TSV, required)
+├── manifest                          # manifest file (auto-generated)
+├── QIIME2_16S_visualization.R        # R visualization script (copy here)
+├── seq/                              # raw paired-end FASTQ files
+│   ├── sample1_1.fq.gz
+│   ├── sample1_2.fq.gz
+│   └── ...
+├── trimmed/                          # primer-trimmed reads (cutadapt output)
+│   ├── sample1_1.fq.gz
+│   ├── sample1_2.fq.gz
+│   └── ...
+├── classifiers/                      # taxonomy classifier databases
+│   ├── SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza
+│   ├── silva-138-99-nb-classifier.qza
+│   └── gg_2022_10_backbone_full_length.nb.qza
+├── qiime2/                           # QIIME2 artifacts (.qza / .qzv)
+│   ├── demux.qza / demux.qzv         # demultiplexing summary
+│   ├── table.qza / table.qzv         # feature table
+│   ├── denoising-stats.qza / .qzv    # DADA2 denoising statistics
+│   ├── rep-seqs.qza / rep-seqs.qzv   # representative sequences
+│   ├── aligned-rep-seqs.qza          # MAFFT alignment
+│   ├── masked-aligned-rep-seqs.qza   # masked alignment
+│   ├── unrooted-tree.qza             # FastTree unrooted tree
+│   ├── rooted-tree.qza               # rooted tree (midpoint)
+│   └── taxonomy.qza / taxonomy.qzv   # taxonomy classification
+├── results/
+│   ├── fastqc_raw/                   # FastQC reports (raw reads)
+│   │   ├── *_fastqc.html / *.zip
+│   │   ├── multiqc_report_raw.html
+│   │   └── multiqc_report_raw_data/
+│   ├── cutadapt_logs/                # per-sample primer trimming logs
+│   │   ├── sample1.log
+│   │   ├── summary_report.txt
+│   │   └── ...
+│   ├── fastqc_trimmed/               # FastQC reports (after trimming)
+│   │   ├── *_fastqc.html / *.zip
+│   │   ├── multiqc_report_trimmed.html
+│   │   └── multiqc_report_trimmed_data/
+│   ├── alpha-rarefaction.qzv         # alpha rarefaction curve
+│   ├── taxa-bar-plots.qzv            # taxonomy bar plot
+│   ├── core-metrics-results/         # core diversity metrics
+│   │   ├── rarefied_table.qza
+│   │   ├── shannon_vector.qza
+│   │   ├── observed_features_vector.qza
+│   │   ├── faith_pd_vector.qza
+│   │   ├── evenness_vector.qza
+│   │   ├── bray_curtis_distance_matrix.qza
+│   │   ├── jaccard_distance_matrix.qza
+│   │   ├── unweighted_unifrac_distance_matrix.qza
+│   │   ├── weighted_unifrac_distance_matrix.qza
+│   │   ├── bray_curtis_pcoa_results.qza
+│   │   ├── jaccard_pcoa_results.qza
+│   │   ├── unweighted_unifrac_pcoa_results.qza
+│   │   ├── weighted_unifrac_pcoa_results.qza
+│   │   ├── bray_curtis_emperor.qzv
+│   │   ├── jaccard_emperor.qzv
+│   │   ├── unweighted_unifrac_emperor.qzv
+│   │   └── weighted_unifrac_emperor.qzv
+│   └── export/                       # exported data (read by R script)
+│       ├── feature-table.tsv         # raw ASV abundance table
+│       ├── feature-table.biom        # raw ASV abundance table (BIOM)
+│       ├── taxonomy.tsv              # species annotation
+│       ├── dna-sequences.fasta       # representative sequences
+│       ├── rarefied_table.tsv        # rarefied ASV abundance table
+│       ├── rarefied_table.biom       # rarefied ASV abundance table (BIOM)
+│       ├── alpha-diversity.tsv       # alpha diversity metrics
+│       ├── distance-matrix.tsv       # beta diversity distance matrix
+│       ├── ordination.txt            # PCoA ordination coordinates
+│       ├── stats.tsv                 # DADA2 denoising stats
+│       ├── tree.nwk                  # phylogenetic tree (Newick)
+│       ├── alpha/                    # alpha diversity boxplots *
+│       │   ├── alpha_diversity_boxplot.pdf
+│       │   └── rarefaction_curves.pdf
+│       ├── beta/                     # beta diversity PCoA plots *
+│       │   ├── beta_diversity_pcoa_bray_curtis.pdf
+│       │   └── beta_diversity_pcoa_jaccard.pdf
+│       ├── taxa/                     # phylum composition plots *
+│       │   ├── phylum_stacked_barplot.pdf
+│       │   └── phylum_abundance_barchart.pdf
+│       ├── heatmap/                  # genus-level heatmap *
+│       │   └── genus_heatmap.pdf
+│       ├── faprotax/                 # FAPROTAX functional prediction
+│       │   ├── faprotax.txt
+│       │   ├── faprotax_report.txt
+│       │   ├── faprotax_report.clean
+│       │   ├── faprotax_report.mat
+│       │   ├── faprotax_report.func_otu
+│       │   ├── faprotax_report.otu_func
+│       │   ├── taxonomy.tsv
+│       │   ├── rarefied_table.biom
+│       │   └── rarefied_tax.biom
+│       ├── picrust2/                 # PICRUSt2 functional prediction
+│       │   ├── feature-table.tsv
+│       │   ├── dna-sequences.fasta
+│       │   └── out/
+│       │       ├── EC.tsv / KO.tsv
+│       │       ├── EC_predicted.tsv.gz / KO_predicted.tsv.gz
+│       │       ├── EC_metagenome_out/
+│       │       │   ├── pred_metagenome_unstrat.tsv.gz
+│       │       │   ├── seqtab_norm.tsv.gz
+│       │       │   └── weighted_nsti.tsv.gz
+│       │       ├── KO_metagenome_out/
+│       │       │   ├── pred_metagenome_unstrat.tsv.gz
+│       │       │   ├── seqtab_norm.tsv.gz
+│       │       │   └── weighted_nsti.tsv.gz
+│       │       ├── pathways_out/
+│       │       │   └── path_abun_unstrat.tsv.gz
+│       │       ├── METACYC.tsv
+│       │       ├── marker_predicted_and_nsti.tsv.gz
+│       │       ├── KEGG.Pathway.raw.txt
+│       │       ├── KEGG.PathwayL1.raw.txt
+│       │       ├── KEGG.PathwayL2.raw.txt
+│       │       └── out.tre
+│       └── feature_tables/           # processed tables *
+│           ├── taxonomy_processed.tsv
+│           ├── feature_table_with_taxonomy.tsv
+│           ├── genus_abundance.tsv
+│           └── alpha_diversity_metrics.tsv
+└── logs/                             # pipeline run logs
+    ├── dada2.log
+    ├── classify.log
+    └── tree.log
+```
+
+> **Note:** Directories marked with `*` (alpha/, beta/, taxa/, heatmap/, feature_tables/) are generated by the R visualization script, not by the shell pipeline directly.
+
+### Repository structure (this repository)
+
 ```
 QIIME2-16S-Workflow/
-├── qiime2-16s-pipeline.sh          # Main analysis pipeline (中文版)
-├── qiime2-16s-pipeline_en.sh       # Main analysis pipeline (English)
-├── qiime2-16s-pipeline_install.sh  # Environment installation (中文版)
-├── qiime2-16s-pipeline_install_en.sh # Environment installation (English)
-├── examples/                        # Example analysis results
-│   ├── metadata.txt                 # Sample metadata reference
-│   ├── manifest                     # Sample manifest reference
-│   ├── export/                      # Final exported results + R visualization
-│   │   ├── QIIME2_16S_visualization.R     # R visualization script (中文版)
-│   │   ├── QIIME2_16S_visualization_EN.R  # R visualization script (English)
-│   │   ├── data/                           # QIIME2 exported data files
-│   │   │   ├── feature-table.tsv           # Raw ASV abundance table
-│   │   │   ├── feature-table.biom          # Raw ASV abundance table (BIOM)
-│   │   │   ├── rarefied_table.tsv          # Rarefied ASV abundance table
-│   │   │   ├── rarefied_table.biom         # Rarefied ASV abundance table (BIOM)
-│   │   │   ├── taxonomy.tsv                # Species annotation
-│   │   │   ├── dna-sequences.fasta         # Representative sequences
-│   │   │   ├── alpha-diversity.tsv         # Alpha diversity metrics
-│   │   │   ├── distance-matrix.tsv         # Beta diversity distances
-│   │   │   ├── ordination.txt              # PCoA coordinates
-│   │   │   ├── stats.tsv                   # Denoising statistics
-│   │   │   └── tree.nwk                    # Phylogenetic tree (Newick)
-│   │   ├── alpha/                   # Alpha diversity boxplots
-│   │   ├── beta/                    # Beta diversity PCoA plots
-│   │   ├── taxa/                    # Phylum composition plots
-│   │   ├── heatmap/                 # Genus-level heatmap
-│   │   ├── faprotax/                # FAPROTAX input tables
-│   │   ├── picrust2/                # PICRUSt2 input files
-│   │   └── feature_tables/          # Processed taxonomy & abundance tables
-│   ├── qiime2/                      # QIIME2 visualizations (.qzv)
-│   │   ├── demux.qzv               # Demultiplexing summary
-│   │   ├── denoising-stats.qzv     # DADA2 denoising statistics
-│   │   ├── table.qzv               # Feature table summary
-│   │   └── taxonomy.qzv            # Taxonomy classification
-│   └── logs/                        # Pipeline run logs
-│       ├── dada2.log               # DADA2 denoising log
-│       ├── classify.log            # Taxonomy classification log
-│       └── tree.log                # Phylogenetic tree log
+├── qiime2-16s-pipeline.sh           # Main analysis pipeline (中文版)
+├── qiime2-16s-pipeline_en.sh        # Main analysis pipeline (English)
+├── qiime2-16s-pipeline_install.sh   # Environment installation (中文版)
+├── qiime2-16s-pipeline_install_en.sh# Environment installation (English)
+├── examples/                         # Example results for preview only
+│   ├── metadata.txt                  # Sample metadata reference
+│   ├── manifest                      # Sample manifest reference
+│   ├── QIIME2_16S_visualization.R    # R visualization script (中文版)
+│   ├── QIIME2_16S_visualization_EN.R # R visualization script (English)
+│   ├── export/                       # Preview of exported results
+│   ├── qiime2/                       # Preview of QIIME2 visualizations
+│   └── logs/                         # Example pipeline run logs
 ├── LICENSE
 ├── .gitignore
 └── README.md
@@ -118,36 +224,60 @@ Dataset: *Arabidopsis thaliana* rhizosphere microbiome (16S rRNA, V3-V4 region)
 
 View `.qzv` files online at: https://view.qiime2.org/
 
+> **⚠️ Note on example data:** The `examples/export/` directory in this repository contains a **lightweight preview subset** of pipeline output — it is intended **only** to demonstrate visualization quality and script behavior. **Do not use these files for actual analysis or as reference data.** Real pipeline runs generate the complete output in `results/export/` (see [Project Structure](#project-structure) and [R Visualization](#r-visualization) sections). The shell pipeline script (`qiime2-16s-pipeline.sh`) produces the full set of output files automatically.
+
 ## R Visualization
 
 After the pipeline completes Step 14 (Export), you can use the R scripts for publication-ready visualizations.
 
+> **Path note:** The R scripts in `examples/` use `export/` as the data path — this matches the simplified demo layout in this repo (`examples/export/`). In real pipeline runs, QIIME2 exports data to **`results/export/`** (see directory structure below). When using the R script with actual pipeline output, update the config section paths from `export/` to `results/export/`.
+
+### Real pipeline directory structure
+
+After running the pipeline, your project directory structure is detailed in the [Project Structure](#project-structure) section above. The key layout for R visualization is:
+
+```
+project_root/                         # your working directory (wd)
+├── metadata.txt
+├── QIIME2_16S_visualization_EN.R     # copy R script here
+├── results/
+│   └── export/                       # pipeline output, read by R script
+│       ├── feature-table.tsv         # input for R visualization
+│       ├── taxonomy.tsv
+│       ├── dna-sequences.fasta
+│       ├── rarefied_table.tsv / .biom
+│       ├── alpha/                    # R script outputs here
+│       ├── beta/
+│       ├── taxa/
+│       ├── heatmap/
+│       ├── faprotax/
+│       ├── picrust2/
+│       └── feature_tables/
+└── logs/
+```
+
+> **⚠️ Important:** The `examples/export/` directory in this repository is a **lightweight preview** of selected pipeline outputs. It is intended only to demonstrate visualization quality. **Do not use `examples/export/` files for actual analysis or as reference data.** Always use the full `results/export/` generated by your own pipeline run.
+
 ### Workflow
 
+> **Note:** The R script can be run **directly on the server** as part of the pipeline (section 15 of the shell script). No need to download files to your local machine.
+
 ```bash
-# 1. Download exported files from the server
-#    (results/export/ from the pipeline working directory)
-#    Save them to a local directory (e.g., data/)
+# 1. Copy the R script to your project root (same level as metadata.txt):
+#    cp examples/QIIME2_16S_visualization_EN.R /path/to/project/
 
-# 2. Place the R script at the same level as data/
-#    export/
-#    ├── QIIME2_16S_visualization.R
-#    ├── data/
-#    │   ├── feature-table.tsv
-#    │   ├── taxonomy.tsv
-#    │   └── ...
+# 2. Open the copied script and modify:
+#    - setwd() → set to your project root
+#    - Config paths: change "export/" to "results/export/"
+#      e.g., feature_table_file <- "results/export/feature-table.tsv"
 
-# 3. Edit the script configuration:
-#    - setwd() → your local export/ path
-#    - metadata_file → path to metadata.txt
-
-# 4. Run the script:
-#    Rscript QIIME2_16S_visualization.R
+# 3. Run directly on the server:
+#    Rscript QIIME2_16S_visualization_EN.R
 ```
 
 ### Output preview
 
-The R scripts generate 6 types of plots and 4 processed data tables under `export/`:
+The R scripts generate 6 types of plots and 4 processed data tables under `export/` (or `results/export/` in real runs):
 - **alpha/** — Alpha diversity boxplots (Shannon, Observed features, Faith PD, Evenness)
 - **beta/** — PCoA ordination plots (Bray-Curtis, Jaccard)
 - **taxa/** — Phylum-level stacked barplot and abundance barchart
@@ -156,7 +286,7 @@ The R scripts generate 6 types of plots and 4 processed data tables under `expor
 - **picrust2/** — PICRUSt2 input files (BIOM + FASTA)
 - **feature_tables/** — Processed taxonomy table and genus abundance table
 
-You can preview the generated PDFs in this repository under `examples/export/` to evaluate visualization quality before running on your own data.
+You can preview the generated PDFs in this repository under `examples/export/alpha/`, `examples/export/beta/`, etc. to evaluate visualization quality before running on your own data. However, **remember that `examples/export/` is a preview subset — your actual pipeline output will be in `results/export/` and will contain many more files.**
 
 ## Notes
 
@@ -242,35 +372,60 @@ seq/<样本名>_2.fq.gz
 
 `.qzv` 可视化文件可在 https://view.qiime2.org/ 在线查看。
 
+> **⚠️ 关于示例数据的说明：** 本仓库 `examples/export/` 目录仅包含 pipeline 产出的**轻量预览子集**，**仅供预览图表效果和脚本表现，不可用于实际分析或作为参考数据**。实际运行 pipeline 时，完整输出位于 `results/export/`，包含所有分析文件（参见[项目结构](#项目结构)和 [R 可视化](#r-可视化)章节）。shell 管道脚本（`qiime2-16s-pipeline.sh`）会自动生成全部输出文件。
+
 ### R 可视化
 
 流程第 14 步（导出）完成后，可使用 R 脚本进行出版级可视化。
 
+> **路径说明：** `examples/` 中的 R 脚本使用 `export/` 路径，与本仓库简化的示例目录结构（`examples/export/`）一致。实际运行 pipeline 时，QIIME2 导出数据位于 **`results/export/`**。将 R 脚本用于真实数据时，需将配置区的路径从 `export/` 改为 `results/export/`（参见下方目录结构）。
+
+### 真实运行时的目录结构
+
+pipeline 运行完成后，完整的目录结构请参见上方的[项目结构](#项目结构)章节。R 可视化涉及的关键路径如下：
+
+```
+项目根目录/                          # 你的工作目录 (wd)
+├── metadata.txt
+├── QIIME2_16S_visualization.R       # R 脚本放在这里
+├── results/
+│   └── export/                      # pipeline 导出数据，R 脚本读取此处
+│       ├── feature-table.tsv         # R 可视化输入文件
+│       ├── taxonomy.tsv
+│       ├── dna-sequences.fasta
+│       ├── rarefied_table.tsv / .biom
+│       ├── alpha/                   # R 脚本输出图表至此
+│       ├── beta/
+│       ├── taxa/
+│       ├── heatmap/
+│       ├── faprotax/
+│       ├── picrust2/
+│       └── feature_tables/
+└── logs/
+```
+
+> **⚠️ 重要提示：** 本仓库中的 `examples/export/` 目录仅为**精简预览**，展示部分 pipeline 输出效果，**不可用于实际分析或作为参考数据**。请始终使用你自己运行 pipeline 生成的完整 `results/export/` 目录。
+
 #### 操作流程
 
+> **注意：** R 脚本可以直接在服务器上作为 pipeline 的一部分运行（shell 脚本第 15 节），无需下载到本地。
+
 ```bash
-# 1. 从服务器下载导出文件（工作目录下的 results/export/）
-#    保存到本地目录（如 data/）
+# 1. 将 R 脚本复制到项目根目录（与 metadata.txt 同级）:
+#    cp examples/QIIME2_16S_visualization.R /path/to/project/
 
-# 2. 将 R 脚本放在与 data/ 同级的目录下
-#    export/
-#    ├── QIIME2_16S_visualization.R
-#    ├── data/
-#    │   ├── feature-table.tsv
-#    │   ├── taxonomy.tsv
-#    │   └── ...
+# 2. 打开复制的脚本，修改以下内容:
+#    - setwd() → 设置为项目根目录
+#    - 配置区路径：将 "export/" 改为 "results/export/"
+#      例如: feature_table_file <- "results/export/feature-table.tsv"
 
-# 3. 修改脚本配置：
-#    - setwd() → 本地 export/ 的实际路径
-#    - metadata_file → metadata.txt 路径
-
-# 4. 运行脚本：
+# 3. 直接在服务器上运行:
 #    Rscript QIIME2_16S_visualization.R
 ```
 
 #### 产出预览
 
-R 脚本在 `export/` 下生成 6 类图表和 4 张处理后的数据表：
+R 脚本在 `export/`（真实运行时为 `results/export/`）下生成 6 类图表和 4 张处理后的数据表：
 - **alpha/** — Alpha 多样性箱线图（Shannon、Observed features、Faith PD、Evenness）
 - **beta/** — PCoA 降维图（Bray-Curtis、Jaccard）
 - **taxa/** — 门水平堆叠柱状图和丰度条形图
@@ -279,7 +434,7 @@ R 脚本在 `export/` 下生成 6 类图表和 4 张处理后的数据表：
 - **picrust2/** — PICRUSt2 输入文件（BIOM + FASTA）
 - **feature_tables/** — 处理后的分类学表和属水平丰度表
 
-本仓库 `examples/export/` 下包含示例输出 PDF，可预览可视化效果。
+本仓库 `examples/export/` 下包含示例输出 PDF，可预览可视化效果。**但请注意：`examples/export/` 仅为预览子集，你实际运行 pipeline 后，完整输出在 `results/export/` 中。**
 
 ### 注意事项
 

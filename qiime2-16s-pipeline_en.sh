@@ -316,20 +316,96 @@ qiime tools export \
     --input-path qiime2/rooted-tree.qza \
     --output-path results/export
 
-echo "Export complete: results/export/"
-echo "Key files:"
-echo "  rarefied_table.tsv       — Rarefied ASV abundance table"
-echo "  feature-table.tsv        — ASV/OTU abundance table (R: read.delim / Python: pd.read_csv)"
-echo "  taxonomy.tsv             — Taxonomic classification"
-echo "  dna-sequences.fasta      — Representative sequences"
-echo "  *.tsv (alpha)            — Alpha diversity (Faith PD, Shannon, etc.)"
-echo "  *_distance_matrix.tsv    — Beta diversity distance matrices"
-echo "  *_pcoa_results.tsv       — PCoA ordination coordinates"
-echo ""
-echo "============================================"
-echo "Visualization tips:"
-echo "  Download files from results/export/ to a local data/ directory"
-echo "  Place QIIME2_16S_visualization.R at the same level as data/"
-echo "  Modify setwd() and metadata_file paths in the script, then run:"
-echo "    Rscript QIIME2_16S_visualization.R"
-echo "  Generated plots will be in: alpha/ beta/ taxa/ heatmap/ etc."
+## 15. One-step R visualization (copy R script to project root first)
+conda activate qiime2-2025.7
+cd ${wd}
+
+# Copy examples/QIIME2_16S_visualization_EN.R to $(pwd), modify setwd(),
+# then the script reads from results/export/ and outputs to subdirectories,
+# also prepares FAPROTAX/PICRUSt2 input files
+if [ -f "QIIME2_16S_visualization_EN.R" ]; then
+    Rscript QIIME2_16S_visualization_EN.R
+elif [ -f "QIIME2_16S_visualization.R" ]; then
+    Rscript QIIME2_16S_visualization.R
+else
+    echo "Please copy examples/QIIME2_16S_visualization_EN.R or examples/QIIME2_16S_visualization.R to $(pwd)"
+fi
+
+## 16. FAPROTAX functional prediction
+conda activate qiime2-2025.7
+cd ${wd}
+
+cd results/export/faprotax
+
+# FAPROTAX script path (modify as needed)
+# Download: http://www.loucalab.com/archive/FAPROTAX/lib/php/index.php?section=Download
+sd=~/db/EasyMicrobiome/script/FAPROTAX_1.2.12
+
+# Prepare BIOM input with taxonomy metadata
+biom add-metadata \
+    -i rarefied_table.biom \
+    --observation-metadata-fp taxonomy.tsv \
+    -o rarefied_tax.biom \
+    --sc-separated taxonomy \
+    --observation-header OTUID,taxonomy
+
+# FAPROTAX collapse
+python ${sd}/collapse_table.py \
+    -i rarefied_tax.biom \
+    -g ${sd}/FAPROTAX.txt \
+    --collapse_by_metadata 'taxonomy' \
+    -v --force \
+    -o faprotax.txt \
+    -r faprotax_report.txt
+
+# Generate presence/absence matrix
+grep '*' -B 1 faprotax_report.txt | grep -v -P '^--$' > faprotax_report.clean
+perl ${sd}/../faprotax_report_sum.pl \
+    -i faprotax_report.clean \
+    -o faprotax_report
+
+echo "FAPROTAX done: results/export/faprotax/faprotax_report.txt"
+
+## 17. PICRUSt2 functional prediction
+conda activate picrust2
+cd ${wd}
+
+cd results/export/picrust2
+
+# Run PICRUSt2 pipeline (background, wait for completion before annotations)
+nohup picrust2_pipeline.py -s dna-sequences.fasta -i feature-table.tsv \
+    -o ./out -p 16 > picrust2.log 2>&1 &
+echo "PICRUSt2 running in background, check: tail -f results/export/picrust2/picrust2.log"
+
+# Add EC/KO/Pathway annotations (run after PICRUSt2 completes)
+cd out
+add_descriptions.py -i pathways_out/path_abun_unstrat.tsv.gz -m METACYC \
+  -o METACYC.tsv
+add_descriptions.py -i EC_metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC \
+  -o EC.tsv
+add_descriptions.py -i KO_metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO \
+  -o KO.tsv
+
+# KEGG hierarchy merge (requires EasyMicrobiome database)
+db=~/db/EasyMicrobiome/
+python3 ${db}/script/summarizeAbundance.py \
+    -i KO.tsv \
+    -m ${db}/kegg/KO1-4.txt \
+    -c 2,3,4 -s ',+,+,' -n raw \
+    -o KEGG
+wc -l KEGG*
+
+# Export and functional prediction complete: results/export/
+# Key files:
+#   rarefied_table.tsv       — Rarefied ASV abundance table
+#   feature-table.tsv        — ASV/OTU abundance table
+#   taxonomy.tsv             — Taxonomic classification
+#   dna-sequences.fasta      — Representative sequences
+#   *.tsv (alpha)            — Alpha diversity (Faith PD, Shannon, etc.)
+#   *_distance_matrix.tsv    — Beta diversity distance matrices
+#   *_pcoa_results.tsv       — PCoA ordination coordinates
+#   faprotax/                — FAPROTAX functional prediction results
+#   picrust2/                — PICRUSt2 functional prediction results
+#
+# One-step visualization: copy examples/QIIME2_16S_visualization_EN.R to
+# project root, modify setwd(), run Rscript, reads results/export/ automatically

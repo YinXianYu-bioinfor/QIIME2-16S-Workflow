@@ -11,6 +11,8 @@ trimmed/
 fastqc_*/
 multiqc_report*.*
 multiqc_report*_data/
+results/fastqc_raw/
+results/fastqc_trimmed/
 
 # Cutadapt logs (per-sample)
 cutadapt_logs/
@@ -33,6 +35,9 @@ results/export/
 # Common pipeline output
 nohup.out
 temp/
+
+# PICRUSt2 intermediate files (large, only final outputs tracked)
+examples/export/picrust2/out/intermediate/
 
 # Claude Code working files
 .claude/
