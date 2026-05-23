@@ -41,6 +41,7 @@ group_col <- "Group"
 # Visualization parameters
 alpha_diversity_file <- "results/export/evenness_vector.tsv"
 feature_table_file <- "results/export/feature-table.tsv"
+rarefied_table_file <- "results/export/rarefied_table.tsv"
 taxonomy_file <- "results/export/taxonomy.tsv"
 dna_sequences_file <- "results/export/dna-sequences.fasta"
 rarefied_biom_file <- "results/export/rarefied_table.biom"
@@ -312,8 +313,32 @@ cat("       Processing alpha diversity...\n")
 
 # 7a. Calculate alpha diversity metrics
 # ------------------------------------------------------------------
-# Calculate multiple alpha diversity metrics from feature_table using vegan
-ft_t <- t(feature_table)  # Transpose: vegan requires samples as rows, ASVs as columns
+# Use the rarefied feature table (rarefied_table.tsv) for alpha diversity,
+# consistent with QIIME2 core-metrics-phylogenetic, to eliminate the effect
+# of varying sequencing depth on richness estimates
+if (!file.exists(rarefied_table_file)) {
+  stop("Rarefied table not found: ", rarefied_table_file,
+       "\nPlease run qiime diversity core-metrics-phylogenetic",
+       " and export rarefied_table.tsv first")
+}
+
+rarefied_table <- read.table(
+  rarefied_table_file,
+  sep = "\t",
+  skip = 1,
+  header = TRUE,
+  check.names = FALSE,
+  row.names = 1,
+  comment.char = ""
+)
+rarefied_table <- as.matrix(rarefied_table)
+mode(rarefied_table) <- "numeric"
+
+# Keep only samples present in metadata
+common_rare <- intersect(colnames(rarefied_table), rownames(metadata))
+rarefied_table <- rarefied_table[, common_rare, drop = FALSE]
+
+ft_t <- t(rarefied_table)  # Transpose: vegan requires samples as rows, ASVs as columns
 
 observed_features <- specnumber(ft_t)
 shannon_div <- diversity(ft_t, index = "shannon")

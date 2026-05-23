@@ -41,6 +41,7 @@ group_col <- "Group"
 # 所有输入文件由 qiime2-16s-pipeline.sh 导出至 results/export/ 目录
 alpha_diversity_file <- "results/export/evenness_vector.tsv"
 feature_table_file <- "results/export/feature-table.tsv"
+rarefied_table_file <- "results/export/rarefied_table.tsv"
 taxonomy_file <- "results/export/taxonomy.tsv"
 dna_sequences_file <- "results/export/dna-sequences.fasta"
 rarefied_biom_file <- "results/export/rarefied_table.biom"
@@ -313,8 +314,31 @@ cat("       正在处理 α 多样性...\n")
 
 # 7a. 计算 α 多样性指标
 # ------------------------------------------------------------------
-# 从 feature_table 用 vegan 计算多个 α 多样性指标
-ft_t <- t(feature_table)  # 转置：vegan 需要样本为行、ASV 为列
+# 使用抽平后的特征表（rarefied table）计算 α 多样性，
+# 与 QIIME2 core-metrics-phylogenetic 条件一致，消除测序深度差异对丰富度指标的影响
+if (!file.exists(rarefied_table_file)) {
+  stop("未找到抽平特征表: ", rarefied_table_file,
+       "\n请先运行 qiime diversity core-metrics-phylogenetic",
+       " 并导出 rarefied_table.tsv")
+}
+
+rarefied_table <- read.table(
+  rarefied_table_file,
+  sep = "\t",
+  skip = 1,
+  header = TRUE,
+  check.names = FALSE,
+  row.names = 1,
+  comment.char = ""
+)
+rarefied_table <- as.matrix(rarefied_table)
+mode(rarefied_table) <- "numeric"
+
+# 只保留元数据中存在的样本
+common_rare <- intersect(colnames(rarefied_table), rownames(metadata))
+rarefied_table <- rarefied_table[, common_rare, drop = FALSE]
+
+ft_t <- t(rarefied_table)  # 转置：vegan 需要样本为行、ASV 为列
 
 observed_features <- specnumber(ft_t)
 shannon_div <- diversity(ft_t, index = "shannon")
