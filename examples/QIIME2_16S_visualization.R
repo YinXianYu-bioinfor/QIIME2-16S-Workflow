@@ -64,6 +64,10 @@ top_n_phyla_stacked <- 8
 #       "lancet" (Lancet), "jco" (JCO), "jama" (JAMA), "uchicago"
 color_palette <- "npg"
 
+# 成对检验 p 值校正方法（BH: Benjamini-Hochberg, none: 不校正）
+# 默认 "none" 以匹配多数文献（如 Wilcoxon rank-sum test 通常不校正）
+p_adjust_method <- "none"
+
 # ============================================================
 # 1. 加载所需的 R 包
 # ============================================================
@@ -347,15 +351,9 @@ est_rich <- estimateR(ft_t)
 chao1_div <- est_rich["S.chao1", ]
 ace_div   <- est_rich["S.ACE", ]
 
-# Pielou evenness（从 alpha-diversity.tsv 读取，可选）
-pielou_div <- setNames(rep(NA_real_, nrow(ft_t)), rownames(ft_t))
-if (file.exists(alpha_diversity_file)) {
-  alpha_data <- read.table(alpha_diversity_file, sep = "\t",
-    header = TRUE, row.names = 1, check.names = FALSE)
-  if ("pielou_evenness" %in% colnames(alpha_data)) {
-    pielou_div <- alpha_data$pielou_evenness
-  }
-}
+# Pielou evenness（从抽平表直接计算: J = H / ln(S)，无需依赖 QIIME2 导出文件）
+pielou_div <- shannon_div / log(observed_features)
+pielou_div[observed_features <= 1] <- 0
 
 # 整合所有指标为数据框
 alpha_metrics_df <- data.frame(
@@ -382,13 +380,14 @@ write.table(alpha_plot_data,
   sep = "\t", row.names = FALSE, quote = FALSE)
 cat("       [OK] results/export/feature_tables/alpha_diversity_metrics.tsv\n")
 
-# 绘图指标（4 个主流指标）
-plot_metrics <- c("observed_features", "shannon", "simpson", "chao1")
+# 绘图指标（含 Pielou evenness）
+plot_metrics <- c("observed_features", "shannon", "simpson", "chao1", "pielou_evenness")
 metric_labels <- c(
   observed_features = "Observed ASVs",
   shannon = "Shannon",
   simpson = "Simpson",
-  chao1 = "Chao1"
+  chao1 = "Chao1",
+  pielou_evenness = "Pielou evenness"
 )
 
 # 转为长格式，过滤非有限值
@@ -423,7 +422,7 @@ for (metric in plot_metrics) {
   # 成对 Wilcoxon + BH 校正
   pw <- suppressWarnings(
     pairwise.wilcox.test(df_sub[[metric]], df_sub[[group_col]],
-                         p.adjust.method = "BH"))
+                         p.adjust.method = p_adjust_method))
   p_mat <- pw$p.value
   if (!is.null(p_mat)) {
     g_levels <- levels(df_sub[[group_col]])
@@ -446,7 +445,7 @@ for (metric in plot_metrics) {
   }
 }
 
-# 7c. 带显著性星号的 α 多样性箱线图（4 面板拼接）
+# 7c. 带显著性星号的 α 多样性箱线图（含 Kruskal-Wallis p 值）
 # ------------------------------------------------------------------
 plot_list <- list()
 
@@ -454,10 +453,14 @@ for (metric in plot_metrics) {
   df_sub <- alpha_long[alpha_long$Metric == metric, ]
   g_levels <- levels(df_sub[[group_col]])
 
+  # Kruskal-Wallis 检验（p 值显示在图上）
+  kw_test <- kruskal.test(as.formula(paste("Value", "~", group_col)), data = df_sub)
+  kw_label <- sprintf("Kruskal-Wallis p = %s", format.pval(kw_test$p.value, digits = 3))
+
   # 成对 Wilcoxon 检验
   pw <- suppressWarnings(
     pairwise.wilcox.test(df_sub$Value, df_sub[[group_col]],
-                         p.adjust.method = "BH"))
+                         p.adjust.method = p_adjust_method))
   p_mat <- pw$p.value
 
   # 构建 ggsignif 参数
@@ -472,9 +475,9 @@ for (metric in plot_metrics) {
           p_mat[g_levels[i], g_levels[j]]
         else NA_real_,
         error = function(e) NA_real_)
-      if (!is.na(pv)) {
+      if (!is.na(pv) && pv < 0.05) {
         comp_list <- c(comp_list, list(c(g_levels[i], g_levels[j])))
-        star <- if (pv < 0.001) "***" else if (pv < 0.01) "**" else if (pv < 0.05) "*" else "ns"
+        star <- if (pv < 0.001) "***" else if (pv < 0.01) "**" else "*"
         annot_vec <- c(annot_vec, star)
       }
     }
@@ -485,9 +488,10 @@ for (metric in plot_metrics) {
     geom_jitter(aes(color = !!sym(group_col)), width = 0.15, size = 1.5, alpha = 0.8) +
     scale_fill_manual(values = get_group_colors(nlevels(df_sub[[group_col]]))) +
     scale_color_manual(values = get_group_colors(nlevels(df_sub[[group_col]]))) +
-    labs(title = metric_labels[metric], x = NULL, y = "Value") +
+    labs(title = metric_labels[metric], subtitle = kw_label, x = NULL, y = "Value") +
     theme_bw(base_size = 12) +
     theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+          plot.subtitle = element_text(hjust = 0.5, size = 9, color = "grey40"),
           legend.position = "none",
           axis.text.x = element_text(angle = 45, hjust = 1),
           panel.grid.minor = element_blank())
@@ -499,10 +503,10 @@ for (metric in plot_metrics) {
   plot_list[[metric]] <- p
 }
 
-# 2x2 拼接
-p_alpha_combined <- wrap_plots(plotlist = plot_list, ncol = 2, nrow = 2)
+# 3x2 拼接（5 指标）
+p_alpha_combined <- wrap_plots(plotlist = plot_list, ncol = 2, nrow = 3)
 ggsave(filename = "results/export/alpha/alpha_diversity_boxplot.pdf",
-       plot = p_alpha_combined, width = 10, height = 8, device = cairo_pdf)
+       plot = p_alpha_combined, width = 10, height = 11, device = cairo_pdf)
 cat("       [OK] results/export/alpha/alpha_diversity_boxplot.pdf\n")
 
 # 7d. 稀释曲线（按组平均）
@@ -979,7 +983,7 @@ cat("\n[8/8] 流程执行完毕！\n")
 cat("========================================\n")
 cat("输出文件汇总:\n")
 cat("========================================\n")
-cat("  results/export/alpha/alpha_diversity_boxplot.pdf           — α 多样性箱线图（4 指标 × 星号标注）\n")
+cat("  results/export/alpha/alpha_diversity_boxplot.pdf           — α 多样性箱线图（5 指标 × 星号标注, 含 K-W p 值）\n")
 cat("  results/export/alpha/rarefaction_curves.pdf               — 稀释曲线\n")
 cat("  results/export/beta/beta_diversity_pcoa_bray_curtis.pdf   — β 多样性 Bray-Curtis PCoA（PERMANOVA 标注）\n")
 cat("  results/export/beta/beta_diversity_pcoa_jaccard.pdf       — β 多样性 Jaccard PCoA（PERMANOVA 标注）\n")
