@@ -322,11 +322,11 @@ cd ${wd}
 
 # Copy examples/QIIME2_16S_visualization_EN.R to $(pwd), modify setwd(),
 # then the script reads from results/export/ and outputs to subdirectories,
-# also prepares FAPROTAX/PICRUSt2 input files
+# also prepares FAPROTAX input files
 if [ -f "QIIME2_16S_visualization_EN.R" ]; then
-    Rscript QIIME2_16S_visualization_EN.R
+    Rscript QIIME2_16S_visualization_EN.R > logs/QIIME2_16S_visualization.log 2>&1
 elif [ -f "QIIME2_16S_visualization.R" ]; then
-    Rscript QIIME2_16S_visualization.R
+    Rscript QIIME2_16S_visualization.R > logs/QIIME2_16S_visualization.log 2>&1
 else
     echo "Please copy examples/QIIME2_16S_visualization_EN.R or examples/QIIME2_16S_visualization.R to $(pwd)"
 fi
@@ -395,6 +395,21 @@ python3 ${db}/script/summarizeAbundance.py \
     -o KEGG
 wc -l KEGG*
 
+## 18. PICRUSt2 visualization (copy picrust2_visualization_EN.R to project root first)
+conda activate qiime2-2025.7
+cd ${wd}
+
+# Place picrust2_visualization_EN.R in the project root (same directory as metadata.txt),
+# the script will automatically read from results/export/picrust2/out/ and
+# output charts to results/export/picrust2/picrust2_visualization/
+if [ -f "picrust2_visualization_EN.R" ]; then
+    Rscript picrust2_visualization_EN.R > logs/picrust2_visualization.log 2>&1
+elif [ -f "picrust2_visualization.R" ]; then
+    Rscript picrust2_visualization.R > logs/picrust2_visualization.log 2>&1
+else
+    echo "Please copy picrust2_visualization_EN.R or picrust2_visualization.R to $(pwd)"
+fi
+
 # Export and functional prediction complete: results/export/
 # Key files:
 #   rarefied_table.tsv       — Rarefied ASV abundance table
@@ -406,6 +421,7 @@ wc -l KEGG*
 #   *_pcoa_results.tsv       — PCoA ordination coordinates
 #   faprotax/                — FAPROTAX functional prediction results
 #   picrust2/                — PICRUSt2 functional prediction results
+#   picrust2/picrust2_visualization/ — PICRUSt2 visualization charts
 #
 # One-step visualization: copy examples/QIIME2_16S_visualization_EN.R to
 # project root, modify setwd(), run Rscript, reads results/export/ automatically

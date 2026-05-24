@@ -322,9 +322,9 @@ cd ${wd}
 
 # 将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)
 # 修改 setwd() 后即可运行, 脚本将自动读取 results/export/ 中的数据
-# 生成图表至 results/export/ 下各子目录, 并准备 FAPROTAX/PICRUSt2 输入文件
+# 生成图表至 results/export/ 下各子目录, 并准备 FAPROTAX 输入文件
 if [ -f "QIIME2_16S_visualization.R" ]; then
-    Rscript QIIME2_16S_visualization.R
+    Rscript QIIME2_16S_visualization.R > logs/QIIME2_16S_visualization.log 2>&1
 else
     echo "请先将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)"
 fi
@@ -395,6 +395,19 @@ python3 ${db}/script/summarizeAbundance.py \
     -o KEGG
 wc -l KEGG*
 
+## 18. PICRUSt2 可视化 (需先将 picrust2_visualization.R 放到项目根目录)
+conda activate qiime2-2025.7
+cd ${wd}
+
+# 将 picrust2_visualization.R 放在项目根目录 (与 metadata.txt 同级) 后，
+# 脚本自动读取 results/export/picrust2/out/ 中的数据，
+# 生成图表至 results/export/picrust2/picrust2_visualization/
+if [ -f "picrust2_visualization.R" ]; then
+    Rscript picrust2_visualization.R > logs/picrust2_visualization.log 2>&1
+else
+    echo "请先将 picrust2_visualization.R 复制到 $(pwd)"
+fi
+
 # 导出与功能预测完成: results/export/
 # 关键文件:
 #   rarefied_table.tsv     — 抽平 ASV 丰度表
@@ -406,6 +419,7 @@ wc -l KEGG*
 #   *_pcoa_results.tsv     — PCoA 降维坐标
 #   faprotax/              — FAPROTAX 功能预测结果
 #   picrust2/              — PICRUSt2 功能预测结果
+#   picrust2/picrust2_visualization/ — PICRUSt2 可视化图表
 #
 # 一站式可视化: 将 QIIME2_16S_visualization.R 放在项目根目录 (与 metadata.txt 同级),
 # 修改 setwd() 后运行 Rscript QIIME2_16S_visualization.R 即可自动读取 results/export/

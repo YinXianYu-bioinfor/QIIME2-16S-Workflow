@@ -30,18 +30,22 @@ logs/
 # Generated QIIME2 visualizations (located in results/)
 results/alpha-rarefaction.qzv
 results/taxa-bar-plots.qzv
-results/export/
+# AI development files
+CLAUDE.md
 
 # Common pipeline output
 nohup.out
 temp/
 
 # PICRUSt2 intermediate files (large, only final outputs tracked)
-examples/export/picrust2/out/intermediate/
+results/export/picrust2/out/intermediate/
+
+# Pipeline runtime generated data (not part of Git repository copy)
+*seven-number-summaries.tsv
 
 # Claude Code working files
 .claude/
 
-# But track example files explicitly (override above patterns)
-!/examples/manifest
-!/examples/logs/
+# But track example result files explicitly (override above patterns)
+!/results/manifest
+!/results/logs/

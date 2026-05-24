@@ -286,7 +286,7 @@ write.table(
   row.names = FALSE,
   quote = FALSE
 )
-cat("       [OK] feature_tables/taxonomy_processed.tsv\n")
+cat("       [OK] results/export/feature_tables/taxonomy_processed.tsv\n")
 
 # 6b. Feature table with taxonomy annotation
 merged_data <- as.data.frame(feature_table)
@@ -306,7 +306,7 @@ write.table(
   row.names = FALSE,
   quote = FALSE
 )
-cat("       [OK] feature_tables/feature_table_with_taxonomy.tsv\n")
+cat("       [OK] results/export/feature_tables/feature_table_with_taxonomy.tsv\n")
 
 # ============================================================
 # 7. Alpha Diversity Analysis
@@ -378,7 +378,7 @@ alpha_plot_data <- merge(
 write.table(alpha_plot_data,
   file = "results/export/feature_tables/alpha_diversity_metrics.tsv",
   sep = "\t", row.names = FALSE, quote = FALSE)
-cat("       [OK] feature_tables/alpha_diversity_metrics.tsv\n")
+cat("       [OK] results/export/feature_tables/alpha_diversity_metrics.tsv\n")
 
 # Plotting metrics (including Pielou evenness)
 plot_metrics <- c("observed_features", "shannon", "simpson", "chao1", "pielou_evenness")
@@ -507,7 +507,7 @@ for (metric in plot_metrics) {
 p_alpha_combined <- wrap_plots(plotlist = plot_list, ncol = 2, nrow = 3)
 ggsave(filename = "results/export/alpha/alpha_diversity_boxplot.pdf",
        plot = p_alpha_combined, width = 10, height = 11, device = cairo_pdf)
-cat("       [OK] alpha/alpha_diversity_boxplot.pdf\n")
+cat("       [OK] results/export/alpha/alpha_diversity_boxplot.pdf\n")
 
 # 7d. Rarefaction curves (group-averaged)
 # ------------------------------------------------------------------
@@ -557,7 +557,7 @@ p_rarefaction <- ggplot(rare_summary, aes(x = Reads, y = mean_ASVs,
 
 ggsave(filename = "results/export/alpha/rarefaction_curves.pdf",
        plot = p_rarefaction, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] alpha/rarefaction_curves.pdf\n")
+cat("       [OK] results/export/alpha/rarefaction_curves.pdf\n")
 
 # ============================================================
 # 8. Beta Diversity - PCoA and PERMANOVA
@@ -617,7 +617,7 @@ p_pcoa <- p_pcoa +
 
 ggsave(filename = "results/export/beta/beta_diversity_pcoa_bray_curtis.pdf",
        plot = p_pcoa, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] beta/beta_diversity_pcoa_bray_curtis.pdf\n")
+cat("       [OK] results/export/beta/beta_diversity_pcoa_bray_curtis.pdf\n")
 
 # ---------- 8b. Jaccard PCoA ----------
 cat("       Jaccard PCoA...\n")
@@ -667,7 +667,7 @@ p_jacc <- p_jacc +
 
 ggsave(filename = "results/export/beta/beta_diversity_pcoa_jaccard.pdf",
        plot = p_jacc, width = 8, height = 6, device = cairo_pdf)
-cat("       [OK] beta/beta_diversity_pcoa_jaccard.pdf\n")
+cat("       [OK] results/export/beta/beta_diversity_pcoa_jaccard.pdf\n")
 cat("\n")
 
 # ============================================================
@@ -756,7 +756,7 @@ if (length(common_asvs) > 0) {
     height = 6,
     device = cairo_pdf
   )
-  cat("       [OK] taxa/phylum_stacked_barplot.pdf\n")
+  cat("       [OK] results/export/taxa/phylum_stacked_barplot.pdf\n")
 
   # ============================================================
   # 10. Phylum-Level Abundance Bar Chart (aggregated)
@@ -826,7 +826,7 @@ if (length(common_asvs) > 0) {
     height = 6,
     device = cairo_pdf
   )
-  cat("       [OK] taxa/phylum_abundance_barchart.pdf\n")
+  cat("       [OK] results/export/taxa/phylum_abundance_barchart.pdf\n")
 
   # ============================================================
   # 11. Genus-Level Heatmap
@@ -890,7 +890,7 @@ if (length(common_asvs) > 0) {
       border_color = NA
     )
     dev.off()
-    cat("       [OK] heatmap/genus_heatmap.pdf\n")
+    cat("       [OK] results/export/heatmap/genus_heatmap.pdf\n")
   } else {
     cat("       [SKIP] Too few classified genera for heatmap (< 3)\n")
   }
@@ -910,7 +910,7 @@ if (length(common_asvs) > 0) {
     row.names = FALSE,
     quote = FALSE
   )
-  cat("       [OK] feature_tables/genus_abundance.tsv\n")
+  cat("       [OK] results/export/feature_tables/genus_abundance.tsv\n")
 } else {
   cat("       [SKIP] No common ASVs between feature table and taxonomy\n")
 }
@@ -926,7 +926,7 @@ cat("\n[6/8] Preparing FAPROTAX input files...\n")
 
 if (file.exists(rarefied_biom_file)) {
   file.copy(rarefied_biom_file, "results/export/faprotax/rarefied_table.biom", overwrite = TRUE)
-  cat("       [OK] faprotax/rarefied_table.biom\n")
+  cat("       [OK] results/export/faprotax/rarefied_table.biom\n")
 } else {
   cat("       [SKIP] Rarefied table not found (", rarefied_biom_file, ")\n")
 }
@@ -940,7 +940,7 @@ if (file.exists(taxonomy_file)) {
   write.table(tax_faprotax, file = con,
     sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
   close(con)
-  cat("       [OK] faprotax/taxonomy.tsv (header and Confidence column removed)\n")
+  cat("       [OK] results/export/faprotax/taxonomy.tsv (header and Confidence column removed)\n")
 } else {
   cat("       [SKIP] Taxonomy file not found (", taxonomy_file, ")\n")
 }
@@ -961,7 +961,7 @@ if (file.exists(feature_table_file)) {
   con <- file("results/export/picrust2/feature-table.tsv", "wb")
   writeLines(ft_lines, con)
   close(con)
-  cat("       [OK] picrust2/feature-table.tsv\n")
+  cat("       [OK] results/export/picrust2/feature-table.tsv\n")
 } else {
   cat("       [SKIP] No feature table found\n")
 }
@@ -969,7 +969,7 @@ if (file.exists(feature_table_file)) {
 # Copy representative sequences
 if (file.exists(dna_sequences_file)) {
   file.copy(dna_sequences_file, "results/export/picrust2/dna-sequences.fasta", overwrite = TRUE)
-  cat("       [OK] picrust2/dna-sequences.fasta\n")
+  cat("       [OK] results/export/picrust2/dna-sequences.fasta\n")
 } else {
   cat("       [SKIP] dna-sequences.fasta not found\n")
 }
@@ -983,20 +983,20 @@ cat("\n[8/8] Pipeline complete!\n")
 cat("========================================\n")
 cat("Output summary:\n")
 cat("========================================\n")
-cat("  alpha/alpha_diversity_boxplot.pdf           - Alpha diversity boxplots (5 metrics with significance + K-W p-values)\n")
-cat("  alpha/rarefaction_curves.pdf               - Rarefaction curves\n")
-cat("  beta/beta_diversity_pcoa_bray_curtis.pdf   - Beta diversity Bray-Curtis PCoA (with PERMANOVA)\n")
-cat("  beta/beta_diversity_pcoa_jaccard.pdf       - Beta diversity Jaccard PCoA (with PERMANOVA)\n")
-cat("  taxa/phylum_stacked_barplot.pdf              - Phylum stacked bar plot\n")
-cat("  taxa/phylum_abundance_barchart.pdf           - Phylum abundance bar chart\n")
-cat("  heatmap/genus_heatmap.pdf                    - Genus heatmap\n")
-cat("  faprotax/rarefied_table.biom                 - FAPROTAX input (rarefied feature table)\n")
-cat("  faprotax/taxonomy.tsv                        - FAPROTAX input (taxonomy)\n")
-cat("  picrust2/feature-table.tsv                   - PICRUSt2 feature table\n")
-cat("  picrust2/dna-sequences.fasta                 - PICRUSt2 representative sequences\n")
-cat("  feature_tables/taxonomy_processed.tsv        - Taxonomy split by level\n")
-cat("  feature_tables/genus_abundance.tsv           - Genus abundance table\n")
-cat("  feature_tables/alpha_diversity_metrics.tsv   - Alpha diversity metrics table\n")
-cat("  feature_tables/feature_table_with_taxonomy.tsv - Feature table with taxonomy\n")
+cat("  results/export/alpha/alpha_diversity_boxplot.pdf           - Alpha diversity boxplots (5 metrics with significance + K-W p-values)\n")
+cat("  results/export/alpha/rarefaction_curves.pdf               - Rarefaction curves\n")
+cat("  results/export/beta/beta_diversity_pcoa_bray_curtis.pdf   - Beta diversity Bray-Curtis PCoA (with PERMANOVA)\n")
+cat("  results/export/beta/beta_diversity_pcoa_jaccard.pdf       - Beta diversity Jaccard PCoA (with PERMANOVA)\n")
+cat("  results/export/taxa/phylum_stacked_barplot.pdf              - Phylum stacked bar plot\n")
+cat("  results/export/taxa/phylum_abundance_barchart.pdf           - Phylum abundance bar chart\n")
+cat("  results/export/heatmap/genus_heatmap.pdf                    - Genus heatmap\n")
+cat("  results/export/faprotax/rarefied_table.biom                 - FAPROTAX input (rarefied feature table)\n")
+cat("  results/export/faprotax/taxonomy.tsv                        - FAPROTAX input (taxonomy)\n")
+cat("  results/export/picrust2/feature-table.tsv                   - PICRUSt2 feature table\n")
+cat("  results/export/picrust2/dna-sequences.fasta                 - PICRUSt2 representative sequences\n")
+cat("  results/export/feature_tables/taxonomy_processed.tsv        - Taxonomy split by level\n")
+cat("  results/export/feature_tables/genus_abundance.tsv           - Genus abundance table\n")
+cat("  results/export/feature_tables/alpha_diversity_metrics.tsv   - Alpha diversity metrics table\n")
+cat("  results/export/feature_tables/feature_table_with_taxonomy.tsv - Feature table with taxonomy\n")
 cat("========================================\n")
 cat("Script ran successfully!\n")
