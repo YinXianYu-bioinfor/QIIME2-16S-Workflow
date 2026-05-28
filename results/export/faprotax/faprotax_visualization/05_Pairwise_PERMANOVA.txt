@@ -1,0 +1,4 @@
+Comparison	R2	p_value	p_adj
+KO vs OE	0.3239	0.004	0.012
+KO vs WT	0.2969	0.024	0.036
+OE vs WT	0.0955	0.388	0.388

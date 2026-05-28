@@ -1,0 +1,24 @@
+Function	p_value	Method	p_adj	sig_label	Cycle
+methanol_oxidation	0.08728	Kruskal-Wallis	0.08728	ns	Methane / Methylotrophy
+methylotrophy	0.08728	Kruskal-Wallis	0.08728	ns	Methane / Methylotrophy
+aerobic_ammonia_oxidation	0.3679	Kruskal-Wallis	0.3679	ns	Nitrogen
+nitrification	0.3679	Kruskal-Wallis	0.3679	ns	Nitrogen
+nitrate_respiration	0.009777	Kruskal-Wallis	0.0244425	*	Nitrogen
+nitrate_reduction	0.01999	Kruskal-Wallis	0.0333166666666667	*	Nitrogen
+nitrogen_respiration	0.009777	Kruskal-Wallis	0.0244425	*	Nitrogen
+sulfate_respiration	0.6422	Kruskal-Wallis	0.6422	ns	Sulfur
+respiration_of_sulfur_compounds	0.6422	Kruskal-Wallis	0.6422	ns	Sulfur
+cellulolysis	0.4006	Kruskal-Wallis	0.4006	ns	Carbon Degradation
+aromatic_compound_degradation	0.05156	Kruskal-Wallis	0.10312	ns	Carbon Degradation
+fermentation	0.2277	Kruskal-Wallis	0.2277	ns	Fermentation
+aerobic_chemoheterotrophy	0.2811	Kruskal-Wallis	0.3254	ns	Heterotrophy
+chemoheterotrophy	0.3254	Kruskal-Wallis	0.3254	ns	Heterotrophy
+animal_parasites_or_symbionts	0.3679	Kruskal-Wallis	0.55185	ns	Host-associated
+intracellular_parasites	0.07995	Kruskal-Wallis	0.23985	ns	Host-associated
+predatory_or_exoparasitic	0.9569	Kruskal-Wallis	0.9569	ns	Host-associated
+chloroplasts	0.003225	Kruskal-Wallis	0.016125	*	Phototrophy
+photosynthetic_cyanobacteria	0.05944	Kruskal-Wallis	0.05944	ns	Phototrophy
+oxygenic_photoautotrophy	0.05944	Kruskal-Wallis	0.05944	ns	Phototrophy
+photoautotrophy	0.05944	Kruskal-Wallis	0.05944	ns	Phototrophy
+phototrophy	0.05944	Kruskal-Wallis	0.05944	ns	Phototrophy
+ureolysis	0.104	Kruskal-Wallis	0.104	ns	Other

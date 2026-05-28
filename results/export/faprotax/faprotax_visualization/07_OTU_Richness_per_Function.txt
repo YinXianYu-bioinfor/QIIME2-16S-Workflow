@@ -1,0 +1,7 @@
+Function	N_OTU	MeanRelAbund
+chemoheterotrophy	296	39.41
+aerobic_chemoheterotrophy	277	38.69
+aromatic_compound_degradation	24	2.31
+nitrate_reduction	14	1.89
+chloroplasts	13	4.03
+ureolysis	3	9.37

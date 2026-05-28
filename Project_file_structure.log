@@ -1,0 +1,397 @@
+.
+|-- |   qiime2
+|   |-- |   rooted-tree.qza
+|   |-- |   taxonomy.qza
+|   |-- |   taxonomy.qzv
+|   |-- |   unrooted-tree.qza
+|   |-- |   denoising-stats.qzv
+|   |-- |   rep-seqs.qza
+|   |-- |   demux.qzv
+|   |-- |   table.qzv
+|   |-- |   aligned-rep-seqs.qza
+|   |-- |   masked-aligned-rep-seqs.qza
+|   |-- |   rep-seqs.qzv
+|   |-- |   denoising-stats.qza
+|   |-- |   table.qza
+|   |-- |   demux.qza
+|-- |   seq
+|   |-- |   KO5_r2.fq.gz
+|   |-- |   WT3_r2.fq.gz
+|   |-- |   OE1_f1.fq.gz
+|   |-- |   WT4_r2.fq.gz
+|   |-- |   WT6_r2.fq.gz
+|   |-- |   KO6_f1.fq.gz
+|   |-- |   OE6_f1.fq.gz
+|   |-- |   WT2_f1.fq.gz
+|   |-- |   KO6_r2.fq.gz
+|   |-- |   OE3_f1.fq.gz
+|   |-- |   WT5_r2.fq.gz
+|   |-- |   OE2_r2.fq.gz
+|   |-- |   KO3_r2.fq.gz
+|   |-- |   OE5_f1.fq.gz
+|   |-- |   KO4_f1.fq.gz
+|   |-- |   WT6_f1.fq.gz
+|   |-- |   OE5_r2.fq.gz
+|   |-- |   KO2_r2.fq.gz
+|   |-- |   OE1_r2.fq.gz
+|   |-- |   WT5_f1.fq.gz
+|   |-- |   WT2_r2.fq.gz
+|   |-- |   OE4_f1.fq.gz
+|   |-- |   KO3_f1.fq.gz
+|   |-- |   WT1_f1.fq.gz
+|   |-- |   OE6_r2.fq.gz
+|   |-- |   WT4_f1.fq.gz
+|   |-- |   OE3_r2.fq.gz
+|   |-- |   KO5_f1.fq.gz
+|   |-- |   OE4_r2.fq.gz
+|   |-- |   KO4_r2.fq.gz
+|   |-- |   KO1_f1.fq.gz
+|   |-- |   KO2_f1.fq.gz
+|   |-- |   WT3_f1.fq.gz
+|   |-- |   KO1_r2.fq.gz
+|   |-- |   OE2_f1.fq.gz
+|   |-- |   WT1_r2.fq.gz
+|-- |   trimmed
+|   |-- |   OE2_1.fq.gz
+|   |-- |   WT2_1.fq.gz
+|   |-- |   WT2_2.fq.gz
+|   |-- |   KO2_2.fq.gz
+|   |-- |   OE1_2.fq.gz
+|   |-- |   KO1_2.fq.gz
+|   |-- |   KO3_1.fq.gz
+|   |-- |   OE6_1.fq.gz
+|   |-- |   OE4_1.fq.gz
+|   |-- |   OE3_1.fq.gz
+|   |-- |   KO4_2.fq.gz
+|   |-- |   WT3_1.fq.gz
+|   |-- |   KO6_1.fq.gz
+|   |-- |   KO5_1.fq.gz
+|   |-- |   KO3_2.fq.gz
+|   |-- |   WT3_2.fq.gz
+|   |-- |   OE5_1.fq.gz
+|   |-- |   WT4_2.fq.gz
+|   |-- |   OE5_2.fq.gz
+|   |-- |   KO5_2.fq.gz
+|   |-- |   KO1_1.fq.gz
+|   |-- |   OE3_2.fq.gz
+|   |-- |   KO2_1.fq.gz
+|   |-- |   KO6_2.fq.gz
+|   |-- |   WT6_1.fq.gz
+|   |-- |   OE4_2.fq.gz
+|   |-- |   WT5_2.fq.gz
+|   |-- |   OE6_2.fq.gz
+|   |-- |   WT1_1.fq.gz
+|   |-- |   WT5_1.fq.gz
+|   |-- |   OE2_2.fq.gz
+|   |-- |   KO4_1.fq.gz
+|   |-- |   WT6_2.fq.gz
+|   |-- |   WT1_2.fq.gz
+|   |-- |   WT4_1.fq.gz
+|   |-- |   OE1_1.fq.gz
+|-- |   classifiers
+|   |-- |   SILVA138.2_SSURef_NR99_uniform_classifier_full-length.qza
+|   |-- |   gg_2022_10_backbone_full_length.nb.qza
+|   |-- |   silva-138-99-nb-classifier.qza
+|-- |   Project_file_structure.log
+|-- |   logs
+|   |-- |   QIIME2_16S_visualization.log
+|   |-- |   faprotax_visualization.log
+|   |-- |   classify.log
+|   |-- |   picrust2_visualization.log
+|   |-- |   tree.log
+|   |-- |   dada2.log
+|-- |   results
+|   |-- |   alpha-rarefaction.qzv
+|   |-- |   core-metrics-results
+|   |   |-- |   weighted_unifrac_distance_matrix.qza
+|   |   |-- |   jaccard_distance_matrix.qza
+|   |   |-- |   bray_curtis_distance_matrix.qza
+|   |   |-- |   faith_pd_vector.qza
+|   |   |-- |   jaccard_pcoa_results.qza
+|   |   |-- |   weighted_unifrac_pcoa_results.qza
+|   |   |-- |   evenness_vector.qza
+|   |   |-- |   rarefied_table.qza
+|   |   |-- |   unweighted_unifrac_distance_matrix.qza
+|   |   |-- |   observed_features_vector.qza
+|   |   |-- |   weighted_unifrac_emperor.qzv
+|   |   |-- |   unweighted_unifrac_pcoa_results.qza
+|   |   |-- |   bray_curtis_pcoa_results.qza
+|   |   |-- |   unweighted_unifrac_emperor.qzv
+|   |   |-- |   jaccard_emperor.qzv
+|   |   |-- |   shannon_vector.qza
+|   |   |-- |   bray_curtis_emperor.qzv
+|   |-- |   taxa-bar-plots.qzv
+|   |-- |   fastqc_raw
+|   |   |-- |   multiqc_report_raw.html
+|   |   |-- |   multiqc_report_raw_data
+|   |   |   |-- |   fastqc_per_sequence_gc_content_plot_Percentages.txt
+|   |   |   |-- |   fastqc_per_base_sequence_quality_plot.txt
+|   |   |   |-- |   fastqc_sequence_duplication_levels_plot.txt
+|   |   |   |-- |   fastqc_per_sequence_quality_scores_plot.txt
+|   |   |   |-- |   multiqc_general_stats.txt
+|   |   |   |-- |   fastqc_top_overrepresented_sequences_table.txt
+|   |   |   |-- |   multiqc_software_versions.txt
+|   |   |   |-- |   fastqc-status-check-heatmap.txt
+|   |   |   |-- |   multiqc_fastqc.txt
+|   |   |   |-- |   multiqc_data.json
+|   |   |   |-- |   multiqc.log
+|   |   |   |-- |   llms-full.txt
+|   |   |   |-- |   fastqc_overrepresented_sequences_plot.txt
+|   |   |   |-- |   multiqc_citations.txt
+|   |   |   |-- |   fastqc_sequence_counts_plot.txt
+|   |   |   |-- |   multiqc_sources.txt
+|   |   |   |-- |   fastqc_per_base_n_content_plot.txt
+|   |   |   |-- |   fastqc_per_sequence_gc_content_plot_Counts.txt
+|   |   |   |-- |   multiqc.parquet
+|   |-- |   export
+|   |   |-- |   picrust2
+|   |   |   |-- |   picrust2_visualization
+|   |   |   |   |-- |   11_Diff_WT_vs_KO.txt
+|   |   |   |   |-- |   12_KO_PCA_Results.txt
+|   |   |   |   |-- |   07_PERMANOVA.txt
+|   |   |   |   |-- |   08_DESeq2_LRT_Barplot.pdf
+|   |   |   |   |-- |   18_EC_LRT_Full_Results.txt
+|   |   |   |   |-- |   17_EC_Class_Stackplot.pdf
+|   |   |   |   |-- |   08_DESeq2_LRT_Full_Results.txt
+|   |   |   |   |-- |   11_Volcano_OE_vs_KO.pdf
+|   |   |   |   |-- |   02_KEGG_L1_Stackplot.pdf
+|   |   |   |   |-- |   12_KO_PCA.pdf
+|   |   |   |   |-- |   11_Diff_OE_vs_KO.txt
+|   |   |   |   |-- |   11_Volcano_WT_vs_KO.pdf
+|   |   |   |   |-- |   07_Pairwise_PERMANOVA.txt
+|   |   |   |   |-- |   07_Pathway_PCoA.pdf
+|   |   |   |   |-- |   03_KEGG_L2_Heatmap.pdf
+|   |   |   |   |-- |   07_PCoA_Results.txt
+|   |   |   |   |-- |   01_NSTI_Boxplot.pdf
+|   |   |   |   |-- |   01_NSTI_Dunn_posthoc.txt
+|   |   |   |   |-- |   04_Pathway_Top10_Barplot.pdf
+|   |   |   |   |-- |   01_NSTI_Values.txt
+|   |   |   |   |-- |   17_EC_Class_Abundance.txt
+|   |   |   |   |-- |   13_KO_LRT_Full_Results.txt
+|   |   |   |   |-- |   13_KO_LRT_Barplot.pdf
+|   |   |   |   |-- |   18_EC_LRT_Barplot.pdf
+|   |   |   |-- |   feature-table.tsv
+|   |   |   |-- |   out
+|   |   |   |   |-- |   EC_metagenome_out
+|   |   |   |   |   |-- |   pred_metagenome_unstrat.tsv.gz
+|   |   |   |   |   |-- |   seqtab_norm.tsv.gz
+|   |   |   |   |   |-- |   weighted_nsti.tsv.gz
+|   |   |   |   |-- |   pathways_out
+|   |   |   |   |   |-- |   path_abun_unstrat.tsv.gz
+|   |   |   |   |-- |   KO_metagenome_out
+|   |   |   |   |   |-- |   pred_metagenome_unstrat.tsv.gz
+|   |   |   |   |   |-- |   seqtab_norm.tsv.gz
+|   |   |   |   |   |-- |   weighted_nsti.tsv.gz
+|   |   |   |   |-- |   EC_predicted.tsv.gz
+|   |   |   |   |-- |   METACYC.tsv
+|   |   |   |   |-- |   KEGG.PathwayL2.raw.txt
+|   |   |   |   |-- |   KO_predicted.tsv.gz
+|   |   |   |   |-- |   marker_predicted_and_nsti.tsv.gz
+|   |   |   |   |-- |   intermediate
+|   |   |   |   |   |-- |   pathways
+|   |   |   |   |   |   |-- |   regrouped_infile.tsv
+|   |   |   |   |   |   |-- |   parsed_mapfile.tsv
+|   |   |   |   |   |   |-- |   minpath_running
+|   |   |   |   |   |   |   |-- |   OE4_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE3_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE6_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO1_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO1_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   WT4_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   WT1_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT6_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT3_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   WT4_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT1_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO6_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE1_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT5_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE2_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE2_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   WT4_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO3_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   KO4_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE5_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO5_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE6_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO3_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   WT2_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE3_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO5_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE3_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT1_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   WT3_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE2_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT5_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE5_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   KO1_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT3_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO5_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   OE4_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   OE4_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO2_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   OE1_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   OE6_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT2_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO6_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   KO4_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO2_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   WT6_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO3_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   OE1_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   OE5_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   KO6_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   WT6_minpath_in.txt
+|   |   |   |   |   |   |   |-- |   WT5_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO2_minpath_report.txt
+|   |   |   |   |   |   |   |-- |   KO4_minpath_details.txt
+|   |   |   |   |   |   |   |-- |   WT2_minpath_report.txt
+|   |   |   |   |   |-- |   place_seqs
+|   |   |   |   |   |   |-- |   query_align.stockholm
+|   |   |   |   |   |   |-- |   epa_out
+|   |   |   |   |   |   |   |-- |   epa_result.jplace
+|   |   |   |   |   |   |   |-- |   epa_info.log
+|   |   |   |   |   |   |   |-- |   epa_result_parsed.jplace
+|   |   |   |   |   |   |-- |   study_seqs_hmmalign.fasta
+|   |   |   |   |   |   |-- |   ref_seqs_hmmalign.fasta
+|   |   |   |   |-- |   EC.tsv
+|   |   |   |   |-- |   KO.tsv
+|   |   |   |   |-- |   KEGG.PathwayL1.raw.txt
+|   |   |   |   |-- |   KEGG.Pathway.raw.txt
+|   |   |   |   |-- |   out.tre
+|   |   |   |-- |   dna-sequences.fasta
+|   |   |-- |   alpha-diversity.tsv
+|   |   |-- |   alpha
+|   |   |   |-- |   alpha_boxplot_shannon.pdf
+|   |   |   |-- |   alpha_diversity_boxplot.pdf
+|   |   |   |-- |   alpha_boxplot_observed_features.pdf
+|   |   |   |-- |   alpha_boxplot_chao1.pdf
+|   |   |   |-- |   rarefaction_curves.pdf
+|   |   |   |-- |   alpha_boxplot_pielou_evenness.pdf
+|   |   |   |-- |   alpha_boxplot_simpson.pdf
+|   |   |-- |   jaccard_distance_matrix.tsv
+|   |   |-- |   rarefied_table.biom
+|   |   |-- |   heatmap
+|   |   |   |-- |   genus_heatmap.pdf
+|   |   |-- |   tree.nwk
+|   |   |-- |   bray_curtis_distance_matrix.tsv
+|   |   |-- |   taxonomy.tsv
+|   |   |-- |   rarefied_table.tsv
+|   |   |-- |   weighted_unifrac_distance_matrix.tsv
+|   |   |-- |   feature-table.biom
+|   |   |-- |   unweighted_unifrac_pcoa_results.txt
+|   |   |-- |   feature-table.tsv
+|   |   |-- |   feature_tables
+|   |   |   |-- |   phylum_relative_abundance.tsv
+|   |   |   |-- |   genus_abundance.tsv
+|   |   |   |-- |   taxonomy_processed.tsv
+|   |   |   |-- |   feature_table_with_taxonomy.tsv
+|   |   |   |-- |   alpha_diversity_metrics.tsv
+|   |   |   |-- |   alpha_diversity_statistics.tsv
+|   |   |-- |   stats.tsv
+|   |   |-- |   faprotax
+|   |   |   |-- |   faprotax_report.mat
+|   |   |   |-- |   faprotax_report.func_otu
+|   |   |   |-- |   rarefied_table.biom
+|   |   |   |-- |   faprotax_report.clean
+|   |   |   |-- |   faprotax_visualization
+|   |   |   |   |-- |   06_Function_Heatmap.pdf
+|   |   |   |   |-- |   07_OTU_ureolysis.pdf
+|   |   |   |   |-- |   03_All_Functions_Test_Results.txt
+|   |   |   |   |-- |   07_OTU_chemoheterotrophy.pdf
+|   |   |   |   |-- |   06_TopCV_Function_Abundance.txt
+|   |   |   |   |-- |   05_PERMANOVA.txt
+|   |   |   |   |-- |   03_Phototrophy_Boxplot.pdf
+|   |   |   |   |-- |   03_Nitrogen_Boxplot.pdf
+|   |   |   |   |-- |   07_OTU_chloroplasts.pdf
+|   |   |   |   |-- |   05_Pairwise_PERMANOVA.txt
+|   |   |   |   |-- |   02_Top_Functions_Abundance.txt
+|   |   |   |   |-- |   05_FAPROTAX_PCoA.pdf
+|   |   |   |   |-- |   07_OTU_Richness_per_Function.txt
+|   |   |   |   |-- |   02_Top_Functions_Barplot.pdf
+|   |   |   |   |-- |   01_Ecological_Cycle_Stackplot.pdf
+|   |   |   |   |-- |   01_Cycle_Abundance.txt
+|   |   |   |   |-- |   05_PCoA_Results.txt
+|   |   |   |   |-- |   07_OTU_aerobic_chemoheterotrophy.pdf
+|   |   |   |   |-- |   07_OTU_nitrate_reduction.pdf
+|   |   |   |   |-- |   07_OTU_Richness_Overview.pdf
+|   |   |   |   |-- |   07_OTU_aromatic_compound_degradation.pdf
+|   |   |   |-- |   taxonomy.tsv
+|   |   |   |-- |   rarefied_tax.biom
+|   |   |   |-- |   faprotax.txt
+|   |   |   |-- |   faprotax_report.otu_func
+|   |   |   |-- |   faprotax_report.txt
+|   |   |-- |   beta
+|   |   |   |-- |   weighted_unifrac_permanova.tsv
+|   |   |   |-- |   unweighted_unifrac_permanova.tsv
+|   |   |   |-- |   bray_curtis_pcoa_coords.tsv
+|   |   |   |-- |   beta_diversity_pcoa_unweighted_unifrac.pdf
+|   |   |   |-- |   jaccard_permanova.tsv
+|   |   |   |-- |   weighted_unifrac_pcoa_coords.tsv
+|   |   |   |-- |   weighted_unifrac_pcoa_variance.tsv
+|   |   |   |-- |   beta_diversity_pcoa_weighted_unifrac.pdf
+|   |   |   |-- |   unweighted_unifrac_pcoa_variance.tsv
+|   |   |   |-- |   beta_diversity_pcoa_jaccard.pdf
+|   |   |   |-- |   jaccard_pcoa_coords.tsv
+|   |   |   |-- |   bray_curtis_permanova.tsv
+|   |   |   |-- |   beta_diversity_pcoa_bray_curtis.pdf
+|   |   |   |-- |   bray_curtis_pcoa_variance.tsv
+|   |   |   |-- |   unweighted_unifrac_pcoa_coords.tsv
+|   |   |   |-- |   jaccard_pcoa_variance.tsv
+|   |   |-- |   taxa
+|   |   |   |-- |   phylum_stacked_barplot.pdf
+|   |   |   |-- |   phylum_abundance_barchart.pdf
+|   |   |-- |   bray_curtis_pcoa_results.txt
+|   |   |-- |   weighted_unifrac_pcoa_results.txt
+|   |   |-- |   dna-sequences.fasta
+|   |   |-- |   unweighted_unifrac_distance_matrix.tsv
+|   |   |-- |   jaccard_pcoa_results.txt
+|   |-- |   cutadapt_logs
+|   |   |-- |   OE2.log
+|   |   |-- |   OE5.log
+|   |   |-- |   summary_report.txt
+|   |   |-- |   WT2.log
+|   |   |-- |   OE4.log
+|   |   |-- |   KO5.log
+|   |   |-- |   KO1.log
+|   |   |-- |   OE6.log
+|   |   |-- |   WT4.log
+|   |   |-- |   KO2.log
+|   |   |-- |   KO4.log
+|   |   |-- |   WT1.log
+|   |   |-- |   OE3.log
+|   |   |-- |   WT5.log
+|   |   |-- |   OE1.log
+|   |   |-- |   KO6.log
+|   |   |-- |   KO3.log
+|   |   |-- |   WT3.log
+|   |   |-- |   WT6.log
+|   |-- |   fastqc_trimmed
+|   |   |-- |   multiqc_report_trimmed.html
+|   |   |-- |   multiqc_report_trimmed_data
+|   |   |   |-- |   fastqc_per_sequence_gc_content_plot_Percentages.txt
+|   |   |   |-- |   fastqc_per_base_sequence_quality_plot.txt
+|   |   |   |-- |   fastqc_sequence_duplication_levels_plot.txt
+|   |   |   |-- |   fastqc_per_sequence_quality_scores_plot.txt
+|   |   |   |-- |   multiqc_general_stats.txt
+|   |   |   |-- |   fastqc_top_overrepresented_sequences_table.txt
+|   |   |   |-- |   multiqc_software_versions.txt
+|   |   |   |-- |   fastqc-status-check-heatmap.txt
+|   |   |   |-- |   multiqc_fastqc.txt
+|   |   |   |-- |   multiqc_data.json
+|   |   |   |-- |   fastqc_sequence_length_distribution_plot.txt
+|   |   |   |-- |   multiqc.log
+|   |   |   |-- |   llms-full.txt
+|   |   |   |-- |   fastqc_overrepresented_sequences_plot.txt
+|   |   |   |-- |   multiqc_citations.txt
+|   |   |   |-- |   fastqc_sequence_counts_plot.txt
+|   |   |   |-- |   multiqc_sources.txt
+|   |   |   |-- |   fastqc_per_base_n_content_plot.txt
+|   |   |   |-- |   fastqc_per_sequence_gc_content_plot_Counts.txt
+|   |   |   |-- |   multiqc.parquet
+|-- |   manifest
+|-- |   scripts
+|   |-- |   picrust2_visualization.R
+|   |-- |   faprotax_visualization.R
+|   |-- |   QIIME2_16S_visualization.R
+|-- |   metadata.txt

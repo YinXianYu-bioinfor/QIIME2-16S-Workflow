@@ -27,7 +27,7 @@ metadata=metadata.txt
 #       SampleID  Group  ...
 #       WT1       WT     ...
 #       KO1       KO     ...
-mkdir -p ${wd}/{seq,trimmed,qiime2,logs,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
+mkdir -p ${wd}/{seq,trimmed,qiime2,logs,scripts,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
 cd ${wd}
 
 # ln /path/to/raw/seq/*.fq.gz seq/
@@ -287,48 +287,60 @@ qiime tools export \
 qiime tools export \
     --input-path results/core-metrics-results/unweighted_unifrac_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/unweighted_unifrac_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/weighted_unifrac_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/weighted_unifrac_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/bray_curtis_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/bray_curtis_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/jaccard_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/jaccard_distance_matrix.tsv
 
 # 14h. PCoA coordinates
 qiime tools export \
     --input-path results/core-metrics-results/unweighted_unifrac_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/unweighted_unifrac_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/weighted_unifrac_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/weighted_unifrac_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/bray_curtis_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/bray_curtis_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/jaccard_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/jaccard_pcoa_results.txt 2>/dev/null; true
 
 # 14i. Phylogenetic tree (Newick format)
 qiime tools export \
     --input-path qiime2/rooted-tree.qza \
     --output-path results/export
 
-## 15. One-step R visualization (copy R script to project root first)
+## 15. One-step R visualization (place R scripts in scripts/ first)
 conda activate qiime2-2025.7
 cd ${wd}
 
-# Copy examples/QIIME2_16S_visualization_EN.R to $(pwd), modify setwd(),
-# then the script reads from results/export/ and outputs to subdirectories,
+# Place scripts/QIIME2_16S_visualization_EN.R (from the project zip) in $(pwd)/scripts/
+# The script reads from results/export/ and outputs to subdirectories,
 # also prepares FAPROTAX input files
-if [ -f "QIIME2_16S_visualization_EN.R" ]; then
-    Rscript QIIME2_16S_visualization_EN.R > logs/QIIME2_16S_visualization.log 2>&1
-elif [ -f "QIIME2_16S_visualization.R" ]; then
-    Rscript QIIME2_16S_visualization.R > logs/QIIME2_16S_visualization.log 2>&1
+if [ -f "scripts/QIIME2_16S_visualization_EN.R" ]; then
+    Rscript scripts/QIIME2_16S_visualization_EN.R \
+        --metadata=${metadata} \
+        > logs/QIIME2_16S_visualization.log 2>&1
+elif [ -f "scripts/QIIME2_16S_visualization.R" ]; then
+    Rscript scripts/QIIME2_16S_visualization.R \
+        --metadata=${metadata} \
+        > logs/QIIME2_16S_visualization.log 2>&1
 else
-    echo "Please copy examples/QIIME2_16S_visualization_EN.R or examples/QIIME2_16S_visualization.R to $(pwd)"
+    echo "scripts/QIIME2_16S_visualization_EN.R not found — check script path"
 fi
 
 ## 16. FAPROTAX functional prediction
@@ -366,6 +378,24 @@ perl ${sd}/../faprotax_report_sum.pl \
 
 echo "FAPROTAX done: results/export/faprotax/faprotax_report.txt"
 
+## 16b. FAPROTAX visualization
+conda activate qiime2-2025.7
+cd ${wd}
+
+# Place scripts/faprotax_visualization_EN.R (from the project zip) in $(pwd)/scripts/
+# Run Rscript scripts/faprotax_visualization_EN.R --help to see all options
+if [ -f "scripts/faprotax_visualization_EN.R" ]; then
+    Rscript scripts/faprotax_visualization_EN.R \
+        --metadata=${metadata} \
+        > logs/faprotax_visualization.log 2>&1
+elif [ -f "scripts/faprotax_visualization.R" ]; then
+    Rscript scripts/faprotax_visualization.R \
+        --metadata=${metadata} \
+        > logs/faprotax_visualization.log 2>&1
+else
+    echo "scripts/faprotax_visualization_EN.R not found — check script path"
+fi
+
 ## 17. PICRUSt2 functional prediction
 conda activate picrust2
 cd ${wd}
@@ -395,19 +425,19 @@ python3 ${db}/script/summarizeAbundance.py \
     -o KEGG
 wc -l KEGG*
 
-## 18. PICRUSt2 visualization (copy picrust2_visualization_EN.R to project root first)
+## 18. PICRUSt2 visualization
 conda activate qiime2-2025.7
 cd ${wd}
 
-# Place picrust2_visualization_EN.R in the project root (same directory as metadata.txt),
-# the script will automatically read from results/export/picrust2/out/ and
-# output charts to results/export/picrust2/picrust2_visualization/
-if [ -f "picrust2_visualization_EN.R" ]; then
-    Rscript picrust2_visualization_EN.R > logs/picrust2_visualization.log 2>&1
-elif [ -f "picrust2_visualization.R" ]; then
-    Rscript picrust2_visualization.R > logs/picrust2_visualization.log 2>&1
+# Place scripts/picrust2_visualization_EN.R (from the project zip) in $(pwd)/scripts/
+# The script reads from results/export/picrust2/out/ and
+# outputs charts to results/export/picrust2/picrust2_visualization/
+if [ -f "scripts/picrust2_visualization_EN.R" ]; then
+    Rscript scripts/picrust2_visualization_EN.R > logs/picrust2_visualization.log 2>&1
+elif [ -f "scripts/picrust2_visualization.R" ]; then
+    Rscript scripts/picrust2_visualization.R > logs/picrust2_visualization.log 2>&1
 else
-    echo "Please copy picrust2_visualization_EN.R or picrust2_visualization.R to $(pwd)"
+    echo "scripts/picrust2_visualization_EN.R not found — check script path"
 fi
 
 # Export and functional prediction complete: results/export/
@@ -425,3 +455,7 @@ fi
 #
 # One-step visualization: copy examples/QIIME2_16S_visualization_EN.R to
 # project root, modify setwd(), run Rscript, reads results/export/ automatically
+
+# Output project file structure
+cd ${wd}
+find . | sed -e 's/[^/]*\//|   /g' -e 's/| *[^|]*$/|-- &/' > Project_file_structure.log

@@ -3,43 +3,135 @@
 # PICRUSt2 功能宏基因组多组可视化（覆盖全部功能层级）
 # ==============================================================================
 # 覆盖层级: NSTI, KEGG L1/L2, KEGG Pathway, KO, EC
-# 用法: 将本脚本放在与 metadata.txt 同级目录下，直接运行 Rscript
+# 用法: Rscript picrust2_visualization.R [选项]
 #       数据读取自 results/export/picrust2/out/，输出至 results/export/picrust2/
 # 输出: PDF图片 + TSV表格，存放在 results/export/picrust2/picrust2_visualization/ 下
+# 帮助: Rscript picrust2_visualization.R --help / -h
 # ==============================================================================
 
 # ==============================================================================
 # 0. 参数设置
 # ==============================================================================
 
+# ---- CLI 参数解析 ----
+parse_cli_args <- function() {
+  args <- commandArgs(trailingOnly = TRUE)
+  params <- list()
+
+  short_map <- c(
+    m = "metadata",
+    p = "picrust2_dir",
+    o = "output_dir",
+    s = "sample_col",
+    g = "group_col",
+    "1" = "run_pathway",
+    "2" = "run_ko",
+    "3" = "run_ec",
+    t = "n_top_stack",
+    T = "n_top_heatmap",
+    d = "n_top_diff",
+    P = "padj_cutoff",
+    l = "lfc_cutoff",
+    w = "fig_w_base",
+    z = "fig_h_base",
+    c = "group_palette"
+  )
+
+  i <- 1
+  while (i <= length(args)) {
+    if (args[i] %in% c("--help", "-h")) {
+      cat("PICRUSt2 功能预测可视化脚本\n")
+      cat("用法: Rscript picrust2_visualization.R [选项]\n")
+      cat("所有参数均有默认值，仅需指定需覆盖的参数。\n\n")
+      cat("路径参数:\n")
+      cat("  -m, --metadata=<file>        元数据文件路径 (默认: metadata.txt)\n")
+      cat("  -p, --picrust2-dir=<dir>     PICRUSt2 输出目录 (默认: results/export/picrust2/out)\n")
+      cat("  -o, --output-dir=<dir>       输出目录 (默认: results/export/picrust2/picrust2_visualization)\n\n")
+      cat("数据参数:\n")
+      cat("  -s, --sample-col=<col>       样本ID列名 (默认: SampleID)\n")
+      cat("  -g, --group-col=<col>        分组列名 (默认: Group)\n\n")
+      cat("分析模块开关 (TRUE/FALSE):\n")
+      cat("  -1, --run-pathway=<T/F>      KEGG Pathway + L1/L2 分析 (默认: TRUE)\n")
+      cat("  -2, --run-ko=<T/F>           KO 级分析 (默认: TRUE)\n")
+      cat("  -3, --run-ec=<T/F>           EC 级分析 (默认: TRUE)\n\n")
+      cat("可视化参数:\n")
+      cat("  -t, --n-top-stack=<n>        堆叠图展示功能数 (默认: 15)\n")
+      cat("  -T, --n-top-heatmap=<n>      热图展示高变异功能数 (默认: 40)\n")
+      cat("  -d, --n-top-diff=<n>         差异分析展示 top n (默认: 25)\n")
+      cat("  -P, --padj-cutoff=<n>        差异显著性阈值 (默认: 0.05)\n")
+      cat("  -l, --lfc-cutoff=<n>         火山图 log2FC 截断 (默认: 1.0)\n")
+      cat("  -w, --fig-w-base=<n>         图片宽度基准 (默认: 6)\n")
+      cat("  -z, --fig-h-base=<n>         图片高度基准 (默认: 5)\n")
+      cat("  -c, --group-palette=<name>   分组配色方案 (默认: npg)\n")
+      quit(save = "no", status = 0)
+    } else if (grepl("^--", args[i])) {
+      kv <- sub("^--", "", args[i])
+      if (grepl("=", kv, fixed = TRUE)) {
+        parts <- strsplit(kv, "=", fixed = TRUE)[[1]]
+        name <- gsub("-", "_", parts[1])
+        params[[name]] <- parts[2]
+      }
+    } else if (grepl("^-", args[i])) {
+      short <- sub("^-", "", args[i])
+      flag <- substr(short, 1, 1)
+      if (flag != "h") {
+        if (grepl("=", short, fixed = TRUE)) {
+          val <- sub("^[^=]+=", "", short)
+          full <- short_map[flag]
+          if (!is.na(full)) params[[full]] <- val
+        } else if (nchar(short) == 1) {
+          full <- short_map[flag]
+          if (!is.na(full) && i < length(args)) {
+            i <- i + 1
+            params[[full]] <- args[i]
+          }
+        }
+      }
+    }
+    i <- i + 1
+  }
+  return(params)
+}
+
+cli <- parse_cli_args()
+
+# 参数辅助函数：取 CLI 值（若有）或默认值
+use_param <- function(cli_val, default) {
+  if (is.null(cli_val)) default else cli_val
+}
+as_flag <- function(x) {
+  if (is.logical(x)) return(x)
+  toupper(as.character(x)) %in% c("TRUE", "T", "1", "YES")
+}
+
 # ---- 路径参数 ----
 setwd(".")
-metadata_file  <- "metadata.txt"
-picrust2_dir   <- "results/export/picrust2/out"
-output_dir     <- "results/export/picrust2/picrust2_visualization"
+metadata_file  <- use_param(cli[["metadata"]], "metadata.txt")
+picrust2_dir   <- use_param(cli[["picrust2_dir"]], "results/export/picrust2/out")
+output_dir     <- use_param(cli[["output_dir"]], "results/export/picrust2/picrust2_visualization")
 
 # ---- 数据参数 ----
-sample_col     <- "SampleID"
-group_col      <- "Group"
+sample_col     <- use_param(cli[["sample_col"]], "SampleID")
+group_col      <- use_param(cli[["group_col"]], "Group")
 
 # ---- 功能层级开关 ----
-run_pathway    <- TRUE    # KEGG Pathway + L1/L2 层级
-run_ko         <- TRUE    # KO 级分析
-run_ec         <- TRUE    # EC 级分析
+run_pathway    <- as_flag(use_param(cli[["run_pathway"]], TRUE))
+run_ko         <- as_flag(use_param(cli[["run_ko"]], TRUE))
+run_ec         <- as_flag(use_param(cli[["run_ec"]], TRUE))
 
 # ---- 可视化参数 ----
-n_top_stack    <- 15      # 堆叠图展示功能数
-n_top_heatmap  <- 40      # 热图展示高变异功能数
-n_top_diff     <- 25      # 差异分析展示 top n
-padj_cutoff    <- 0.05    # 差异显著性阈值
-lfc_cutoff     <- 1.0     # 火山图 log2FC 截断（仅用于标注）
+n_top_stack    <- as.numeric(use_param(cli[["n_top_stack"]], 15))
+n_top_heatmap  <- as.numeric(use_param(cli[["n_top_heatmap"]], 40))
+n_top_diff     <- as.numeric(use_param(cli[["n_top_diff"]], 25))
+padj_cutoff    <- as.numeric(use_param(cli[["padj_cutoff"]], 0.05))
+lfc_cutoff     <- as.numeric(use_param(cli[["lfc_cutoff"]], 1.0))
 
 # ---- 配色 ----
-group_palette  <- "npg"
+group_palette  <- use_param(cli[["group_palette"]], "npg")
 
 # ---- 图片尺寸 ----
-fig_w_base     <- 6
-fig_h_base     <- 5
+fig_w_base     <- as.numeric(use_param(cli[["fig_w_base"]], 6))
+fig_h_base     <- as.numeric(use_param(cli[["fig_h_base"]], 5))
 
 # ==============================================================================
 # 1. 包加载与工具函数

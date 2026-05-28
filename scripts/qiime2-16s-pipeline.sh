@@ -27,7 +27,7 @@ metadata=metadata.txt
 #       SampleID  Group  ...
 #       WT1       WT     ...
 #       KO1       KO     ...
-mkdir -p ${wd}/{seq,trimmed,qiime2,logs,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
+mkdir -p ${wd}/{seq,trimmed,qiime2,logs,scripts,results/{fastqc_raw,fastqc_trimmed,cutadapt_logs,export}}
 cd ${wd}
 
 # ln /path/to/raw/seq/*.fq.gz seq/
@@ -287,46 +287,55 @@ qiime tools export \
 qiime tools export \
     --input-path results/core-metrics-results/unweighted_unifrac_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/unweighted_unifrac_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/weighted_unifrac_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/weighted_unifrac_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/bray_curtis_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/bray_curtis_distance_matrix.tsv
 qiime tools export \
     --input-path results/core-metrics-results/jaccard_distance_matrix.qza \
     --output-path results/export
+mv results/export/distance-matrix.tsv results/export/jaccard_distance_matrix.tsv
 
-# 14h. PCoA 坐标
+# 14h. PCoA 坐标 (每个 export 后重命名, 避免覆盖)
 qiime tools export \
     --input-path results/core-metrics-results/unweighted_unifrac_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/unweighted_unifrac_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/weighted_unifrac_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/weighted_unifrac_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/bray_curtis_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/bray_curtis_pcoa_results.txt 2>/dev/null; true
 qiime tools export \
     --input-path results/core-metrics-results/jaccard_pcoa_results.qza \
     --output-path results/export
+mv results/export/ordination.txt results/export/jaccard_pcoa_results.txt 2>/dev/null; true
 
 # 14i. 系统发育树 (Newick 格式)
 qiime tools export \
     --input-path qiime2/rooted-tree.qza \
     --output-path results/export
 
-## 15. 一站式 R 可视化 (需先将 R 脚本放到项目根目录)
+## 15. 一站式 R 可视化 (需将脚本放入 scripts/ 目录)
 conda activate qiime2-2025.7
 cd ${wd}
 
-# 将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)
-# 修改 setwd() 后即可运行, 脚本将自动读取 results/export/ 中的数据
-# 生成图表至 results/export/ 下各子目录, 并准备 FAPROTAX 输入文件
-if [ -f "QIIME2_16S_visualization.R" ]; then
-    Rscript QIIME2_16S_visualization.R > logs/QIIME2_16S_visualization.log 2>&1
+# 将 scripts/QIIME2_16S_visualization.R (来自项目压缩包) 放入 $(pwd)/scripts/
+# 所有参数有默认值, 可通过命令行覆盖, 使用 --help 查看全部选项
+if [ -f "scripts/QIIME2_16S_visualization.R" ]; then
+    Rscript scripts/QIIME2_16S_visualization.R \
+        --metadata=${metadata} \
+        > logs/QIIME2_16S_visualization.log 2>&1
 else
-    echo "请先将 examples/QIIME2_16S_visualization.R 复制到 $(pwd)"
+    echo "未找到 scripts/QIIME2_16S_visualization.R，请确认脚本路径"
 fi
 
 ## 16. FAPROTAX 功能预测分析
@@ -366,6 +375,20 @@ echo "FAPROTAX 完成: results/export/faprotax/faprotax_report.txt"
 echo "  功能有无矩阵: results/export/faprotax/faprotax_report.mat"
 echo "  功能丰度表:   results/export/faprotax/faprotax.txt"
 
+## 16b. FAPROTAX 可视化
+conda activate qiime2-2025.7
+cd ${wd}
+
+# 将 scripts/faprotax_visualization.R (来自项目压缩包) 放入 $(pwd)/scripts/
+# 使用 --help 查看全部选项
+if [ -f "scripts/faprotax_visualization.R" ]; then
+    Rscript scripts/faprotax_visualization.R \
+        --metadata=${metadata} \
+        > logs/faprotax_visualization.log 2>&1
+else
+    echo "未找到 scripts/faprotax_visualization.R，请确认脚本路径"
+fi
+
 ## 17. PICRUSt2 功能预测分析
 conda activate picrust2
 cd ${wd}
@@ -395,17 +418,18 @@ python3 ${db}/script/summarizeAbundance.py \
     -o KEGG
 wc -l KEGG*
 
-## 18. PICRUSt2 可视化 (需先将 picrust2_visualization.R 放到项目根目录)
+## 18. PICRUSt2 可视化
 conda activate qiime2-2025.7
 cd ${wd}
 
-# 将 picrust2_visualization.R 放在项目根目录 (与 metadata.txt 同级) 后，
-# 脚本自动读取 results/export/picrust2/out/ 中的数据，
-# 生成图表至 results/export/picrust2/picrust2_visualization/
-if [ -f "picrust2_visualization.R" ]; then
-    Rscript picrust2_visualization.R > logs/picrust2_visualization.log 2>&1
+# 将 scripts/picrust2_visualization.R (来自项目压缩包) 放入 $(pwd)/scripts/
+# 使用 --help 查看全部选项
+if [ -f "scripts/picrust2_visualization.R" ]; then
+    Rscript scripts/picrust2_visualization.R \
+        --metadata=${metadata} \
+        > logs/picrust2_visualization.log 2>&1
 else
-    echo "请先将 picrust2_visualization.R 复制到 $(pwd)"
+    echo "未找到 scripts/picrust2_visualization.R，请确认脚本路径"
 fi
 
 # 导出与功能预测完成: results/export/
@@ -418,12 +442,13 @@ fi
 #   *_distance_matrix.tsv  — Beta 多样性距离矩阵
 #   *_pcoa_results.tsv     — PCoA 降维坐标
 #   faprotax/              — FAPROTAX 功能预测结果
+#   faprotax/faprotax_visualization/ — FAPROTAX 可视化图表
 #   picrust2/              — PICRUSt2 功能预测结果
 #   picrust2/picrust2_visualization/ — PICRUSt2 可视化图表
 #
-# 一站式可视化: 将 QIIME2_16S_visualization.R 放在项目根目录 (与 metadata.txt 同级),
-# 修改 setwd() 后运行 Rscript QIIME2_16S_visualization.R 即可自动读取 results/export/
-# 并生成图表至 results/export/ 下各子目录, 无需手动搬运文件
+# 一站式可视化: 将项目压缩包中 scripts/ 下的 R 脚本放入 $(pwd)/scripts/,
+# pipeline 自动调用; 亦可手动运行 Rscript scripts/QIIME2_16S_visualization.R [选项]
+# 脚本自动读取 results/export/ 并生成图表至各子目录
 
 # 输出项目路径与文件结构
 cd ${wd}

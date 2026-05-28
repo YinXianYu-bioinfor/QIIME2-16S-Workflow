@@ -3,43 +3,135 @@
 # PICRUSt2 Functional Metagenome Multi-Group Visualization (All Levels)
 # ==============================================================================
 # Levels: NSTI, KEGG L1/L2, KEGG Pathway, KO, EC
-# Usage: Place this script in the same directory as metadata.txt and run Rscript
+# Usage: Rscript picrust2_visualization_EN.R [options]
 #        Data read from results/export/picrust2/out/, output to results/export/picrust2/
 # Output: PDF figures + TSV tables in results/export/picrust2/picrust2_visualization/
+# Help: Rscript picrust2_visualization_EN.R --help / -h
 # ==============================================================================
 
 # ==============================================================================
 # 0. Parameter Settings
 # ==============================================================================
 
+# ---- CLI Argument Parsing ----
+parse_cli_args <- function() {
+  args <- commandArgs(trailingOnly = TRUE)
+  params <- list()
+
+  short_map <- c(
+    m = "metadata",
+    p = "picrust2_dir",
+    o = "output_dir",
+    s = "sample_col",
+    g = "group_col",
+    "1" = "run_pathway",
+    "2" = "run_ko",
+    "3" = "run_ec",
+    t = "n_top_stack",
+    T = "n_top_heatmap",
+    d = "n_top_diff",
+    P = "padj_cutoff",
+    l = "lfc_cutoff",
+    w = "fig_w_base",
+    z = "fig_h_base",
+    c = "group_palette"
+  )
+
+  i <- 1
+  while (i <= length(args)) {
+    if (args[i] %in% c("--help", "-h")) {
+      cat("PICRUSt2 Functional Prediction Visualization Script\n")
+      cat("Usage: Rscript picrust2_visualization_EN.R [options]\n")
+      cat("All parameters have default values. Only specify parameters to override.\n\n")
+      cat("Path parameters:\n")
+      cat("  -m, --metadata=<file>        Metadata file path (default: metadata.txt)\n")
+      cat("  -p, --picrust2-dir=<dir>     PICRUSt2 output directory (default: results/export/picrust2/out)\n")
+      cat("  -o, --output-dir=<dir>       Output directory (default: results/export/picrust2/picrust2_visualization)\n\n")
+      cat("Data parameters:\n")
+      cat("  -s, --sample-col=<col>       Sample ID column name (default: SampleID)\n")
+      cat("  -g, --group-col=<col>        Group column name (default: Group)\n\n")
+      cat("Analysis module switches (TRUE/FALSE):\n")
+      cat("  -1, --run-pathway=<T/F>      KEGG Pathway + L1/L2 analysis (default: TRUE)\n")
+      cat("  -2, --run-ko=<T/F>           KO level analysis (default: TRUE)\n")
+      cat("  -3, --run-ec=<T/F>           EC level analysis (default: TRUE)\n\n")
+      cat("Visualization parameters:\n")
+      cat("  -t, --n-top-stack=<n>        Features in stacked barplot (default: 15)\n")
+      cat("  -T, --n-top-heatmap=<n>      Top variable features in heatmap (default: 40)\n")
+      cat("  -d, --n-top-diff=<n>         Top features for differential analysis (default: 25)\n")
+      cat("  -P, --padj-cutoff=<n>        Significance threshold (default: 0.05)\n")
+      cat("  -l, --lfc-cutoff=<n>         log2FC cutoff for volcano plot (default: 1.0)\n")
+      cat("  -w, --fig-w-base=<n>         Figure width base (default: 6)\n")
+      cat("  -z, --fig-h-base=<n>         Figure height base (default: 5)\n")
+      cat("  -c, --group-palette=<name>   Group color palette (default: npg)\n")
+      quit(save = "no", status = 0)
+    } else if (grepl("^--", args[i])) {
+      kv <- sub("^--", "", args[i])
+      if (grepl("=", kv, fixed = TRUE)) {
+        parts <- strsplit(kv, "=", fixed = TRUE)[[1]]
+        name <- gsub("-", "_", parts[1])
+        params[[name]] <- parts[2]
+      }
+    } else if (grepl("^-", args[i])) {
+      short <- sub("^-", "", args[i])
+      flag <- substr(short, 1, 1)
+      if (flag != "h") {
+        if (grepl("=", short, fixed = TRUE)) {
+          val <- sub("^[^=]+=", "", short)
+          full <- short_map[flag]
+          if (!is.na(full)) params[[full]] <- val
+        } else if (nchar(short) == 1) {
+          full <- short_map[flag]
+          if (!is.na(full) && i < length(args)) {
+            i <- i + 1
+            params[[full]] <- args[i]
+          }
+        }
+      }
+    }
+    i <- i + 1
+  }
+  return(params)
+}
+
+cli <- parse_cli_args()
+
+# Helper functions
+use_param <- function(cli_val, default) {
+  if (is.null(cli_val)) default else cli_val
+}
+as_flag <- function(x) {
+  if (is.logical(x)) return(x)
+  toupper(as.character(x)) %in% c("TRUE", "T", "1", "YES")
+}
+
 # ---- Path Parameters ----
 setwd(".")
-metadata_file  <- "metadata.txt"
-picrust2_dir   <- "results/export/picrust2/out"
-output_dir     <- "results/export/picrust2/picrust2_visualization"
+metadata_file  <- use_param(cli[["metadata"]], "metadata.txt")
+picrust2_dir   <- use_param(cli[["picrust2_dir"]], "results/export/picrust2/out")
+output_dir     <- use_param(cli[["output_dir"]], "results/export/picrust2/picrust2_visualization")
 
 # ---- Data Parameters ----
-sample_col     <- "SampleID"
-group_col      <- "Group"
+sample_col     <- use_param(cli[["sample_col"]], "SampleID")
+group_col      <- use_param(cli[["group_col"]], "Group")
 
 # ---- Functional Level Switches ----
-run_pathway    <- TRUE    # KEGG Pathway + L1/L2 levels
-run_ko         <- TRUE    # KO level analysis
-run_ec         <- TRUE    # EC level analysis
+run_pathway    <- as_flag(use_param(cli[["run_pathway"]], TRUE))
+run_ko         <- as_flag(use_param(cli[["run_ko"]], TRUE))
+run_ec         <- as_flag(use_param(cli[["run_ec"]], TRUE))
 
 # ---- Visualization Parameters ----
-n_top_stack    <- 15      # Number of features in stacked barplot
-n_top_heatmap  <- 40      # Number of top variable features in heatmap
-n_top_diff     <- 25      # Top n features for differential analysis
-padj_cutoff    <- 0.05    # Significance threshold
-lfc_cutoff     <- 1.0     # log2FC cutoff for volcano plot (labeling only)
+n_top_stack    <- as.numeric(use_param(cli[["n_top_stack"]], 15))
+n_top_heatmap  <- as.numeric(use_param(cli[["n_top_heatmap"]], 40))
+n_top_diff     <- as.numeric(use_param(cli[["n_top_diff"]], 25))
+padj_cutoff    <- as.numeric(use_param(cli[["padj_cutoff"]], 0.05))
+lfc_cutoff     <- as.numeric(use_param(cli[["lfc_cutoff"]], 1.0))
 
 # ---- Color Scheme ----
-group_palette  <- "npg"
+group_palette  <- use_param(cli[["group_palette"]], "npg")
 
 # ---- Figure Dimensions ----
-fig_w_base     <- 6
-fig_h_base     <- 5
+fig_w_base     <- as.numeric(use_param(cli[["fig_w_base"]], 6))
+fig_h_base     <- as.numeric(use_param(cli[["fig_h_base"]], 5))
 
 # ==============================================================================
 # 1. Package Loading & Utility Functions

@@ -46,6 +46,10 @@ results/export/picrust2/out/intermediate/
 # Claude Code working files
 .claude/
 
+# Code intelligence cache (local, auto-generated)
+.codegraph/
+
+
 # But track example result files explicitly (override above patterns)
 !/results/manifest
 !/results/logs/
