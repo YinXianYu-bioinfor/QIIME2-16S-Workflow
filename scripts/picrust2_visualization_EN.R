@@ -218,13 +218,24 @@ multi_group_test <- function(df, val_col, grp_col, p_adj_method = "bh") {
   kw <- kruskal.test(df[[val_col]] ~ df[[grp_col]])
   kw_p <- signif(kw$p.value, 4)
 
-  dunn <- dunnTest(df[[val_col]] ~ df[[grp_col]], method = p_adj_method)
-  dunn_df <- as.data.frame(dunn$res)
-  dunn_df$Comparison <- gsub(" ", "", dunn_df$Comparison)
-  dunn_df$sig_label <- ifelse(dunn_df$P.adj < 0.001, "***",
-                       ifelse(dunn_df$P.adj < 0.01,  "**",
-                       ifelse(dunn_df$P.adj < 0.05,  "*", "ns")))
-  dunn_df$P.adj <- signif(dunn_df$P.adj, 4)
+  grp_lev <- unique(as.character(df[[grp_col]]))
+  if (length(grp_lev) <= 2) {
+    # K-W is sufficient for 2 groups; dunnTest fails internally with 2 groups
+    dunn_df <- data.frame(Comparison = paste(grp_lev, collapse = " - "),
+                          Z = NA, P.unadj = NA, P.adj = kw_p,
+                          sig_label = ifelse(kw_p < 0.001, "***",
+                                      ifelse(kw_p < 0.01,  "**",
+                                      ifelse(kw_p < 0.05,  "*", "ns"))),
+                          stringsAsFactors = FALSE)
+  } else {
+    dunn <- dunnTest(df[[val_col]] ~ df[[grp_col]], method = p_adj_method)
+    dunn_df <- as.data.frame(dunn$res)
+    dunn_df$Comparison <- gsub(" ", "", dunn_df$Comparison)
+    dunn_df$sig_label <- ifelse(dunn_df$P.adj < 0.001, "***",
+                         ifelse(dunn_df$P.adj < 0.01,  "**",
+                         ifelse(dunn_df$P.adj < 0.05,  "*", "ns")))
+    dunn_df$P.adj <- signif(dunn_df$P.adj, 4)
+  }
   list(kw_p = kw_p, dunn = dunn_df)
 }
 
